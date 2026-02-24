@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kanban - Copiadora</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 max-h-screen">
     <div class="container mx-auto px-5 py-8">
@@ -103,6 +106,37 @@
     </div>
 
     <script>
+        // ==================== CONFIGURAÇÃO FIREBASE ====================
+        // ATENÇÃO: Substitua com suas credenciais do Firebase Console
+        // https://console.firebase.google.com
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_PROJECT_ID.firebaseapp.com",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_PROJECT_ID.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        // Inicializar Firebase
+        let db = null;
+        let useFirebase = false;
+        
+        try {
+            if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                useFirebase = true;
+                console.log("✅ Firebase conectado - Sincronização ativada!");
+            } else {
+                console.warn("⚠️ Firebase não configurado - Usando localStorage");
+            }
+        } catch (error) {
+            console.error("❌ Erro ao conectar Firebase:", error);
+            console.warn("⚠️ Usando localStorage como fallback");
+        }
+        // ===============================================================
+
         let currentColumn = null;
         let cardCounter = {};
         let selectedPDF = null;
@@ -117,21 +151,103 @@
             });
         }
 
-        // Carregar dados do localStorage
+        // Carregar dados do Firebase ou localStorage
         function loadData() {
-            const data = localStorage.getItem('kanbanData');
-            if (data) {
-                const cards = JSON.parse(data);
-                cards.forEach(card => {
-                    const container = document.getElementById(`${card.column}-content`);
-                    if (container) {
-                        container.innerHTML += createCardHTML(card.title, card.description);
+            if (useFirebase) {
+                // Carregar do Firestore
+                loadFromFirestore();
+            } else {
+                // Carregar do localStorage
+                const data = localStorage.getItem('kanbanData');
+                if (data) {
+                    const cards = JSON.parse(data);
+                    renderCards(cards);
+                } else {
+                    // Dados iniciais de demonstração
+                    loadDemoData();
+                }
+            }
+        }
+
+        // Carregar dados do Firestore
+        function loadFromFirestore() {
+            db.collection('cards').orderBy('createdAt', 'asc').get()
+                .then((querySnapshot) => {
+                    const cards = [];
+                    querySnapshot.forEach((doc) => {
+                        cards.push(doc.data());
+                    });
+                    
+                    if (cards.length > 0) {
+                        renderCards(cards);
+                    } else {
+                        loadDemoData();
+                    }
+
+                    // Listener em tempo real para sincronização
+                    setupRealtimeListener();
+                })
+                .catch((error) => {
+                    console.error("Erro ao carregar Firestore:", error);
+                    // Fallback para localStorage
+                    const data = localStorage.getItem('kanbanData');
+                    if (data) {
+                        renderCards(JSON.parse(data));
+                    } else {
+                        loadDemoData();
                     }
                 });
-            } else {
-                // Dados iniciais de demonstração
-                loadDemoData();
-            }
+        }
+
+        // Configurar listener em tempo real
+        function setupRealtimeListener() {
+            db.collection('cards').onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        // Recarregar dados quando houver mudanças
+                        reloadFromFirestore();
+                    }
+                });
+            });
+        }
+
+        // Recarregar dados do Firestore (para sincronização em tempo real)
+        function reloadFromFirestore() {
+            db.collection('cards').orderBy('createdAt', 'asc').get()
+                .then((querySnapshot) => {
+                    const cards = [];
+                    querySnapshot.forEach((doc) => {
+                        cards.push(doc.data());
+                    });
+                    
+                    // Limpar todas as colunas
+                    const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+                    columns.forEach(col => {
+                        const container = document.getElementById(`${col}-content`);
+                        if (container) container.innerHTML = '';
+                    });
+                    
+                    renderCards(cards);
+                })
+                .catch((error) => {
+                    console.error("Erro ao recarregar:", error);
+                });
+        }
+
+        // Renderizar cards na tela
+        function renderCards(cards) {
+            cards.forEach(card => {
+                const container = document.getElementById(`${card.column}-content`);
+                if (container) {
+                    container.innerHTML += createCardHTML(
+                        card.title, 
+                        card.description, 
+                        card.pdfBase64 || null, 
+                        card.pdfName || null,
+                        card.date || null
+                    );
+                }
+            });
         }
 
         // Dados iniciais de demonstração
@@ -271,7 +387,7 @@
             selectedDate = event.target.value;
         }
 
-        // Salvar dados no localStorage
+        // Salvar dados no Firebase ou localStorage
         function saveData() {
             const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
             const cards = [];
@@ -283,16 +399,67 @@
                     cardElements.forEach(card => {
                         const titleEl = card.querySelector('.font-semibold');
                         const descEl = card.querySelector('.text-gray-500');
+                        const pdfBase64 = card.getAttribute('data-pdf') || null;
+                        const pdfName = card.getAttribute('data-pdf-name') || null;
+                        const dateElement = card.querySelector('.text-blue-600');
+                        let date = null;
+                        if (dateElement) {
+                            const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                            // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                            const parts = dateText.split('/');
+                            if (parts.length === 3) {
+                                date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                            }
+                        }
+                        
                         cards.push({
                             column: column,
                             title: titleEl?.textContent || '',
-                            description: descEl?.textContent || ''
+                            description: descEl?.textContent || '',
+                            pdfBase64: pdfBase64,
+                            pdfName: pdfName,
+                            date: date,
+                            createdAt: Date.now()
                         });
                     });
                 }
             });
 
-            localStorage.setItem('kanbanData', JSON.stringify(cards));
+            if (useFirebase) {
+                // Salvar no Firestore
+                saveToFirestore(cards);
+            } else {
+                // Salvar no localStorage (fallback)
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+            }
+        }
+
+        // Salvar dados no Firestore
+        function saveToFirestore(cards) {
+            // Primeiro limpar todos os cards existentes
+            db.collection('cards').get().then((querySnapshot) => {
+                const batch = db.batch();
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                return batch.commit();
+            }).then(() => {
+                // Depois adicionar os novos cards
+                const batch = db.batch();
+                cards.forEach((card, index) => {
+                    const docRef = db.collection('cards').doc(`card_${Date.now()}_${index}`);
+                    batch.set(docRef, card);
+                });
+                return batch.commit();
+            }).then(() => {
+                console.log('✓ Dados salvos no Firestore');
+                // Também salvar no localStorage como backup
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+            }).catch((error) => {
+                console.error('Erro ao salvar no Firestore:', error);
+                // Fallback para localStorage
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+            });
         }
 
         // Mover card para coluna anterior
