@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban - Copiadora</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 max-h-screen">
+    <div class="container mx-auto px-5 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white mb-2 tracking-wider drop-shadow-lg">📋 COPIADORA</h1>
+            <p class="text-blue-100 text-base">Sistema de fluxo de trabalho</p>
+            <button onclick="openModalForColumn('orcamento')" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors">
+                ➕ Novo Pedido
+            </button>
+        </div>
+
+        <!-- Board -->
+        <div class="flex gap-3 overflow-x-auto pb-4 justify-center flex-wrap lg:flex-nowrap max-w-[95vw] mx-auto px-4">
+            <!-- Coluna: Orçamento -->
+            <div class="flex-shrink-0 w-60 bg-white rounded-lg shadow-md flex flex-col h-[65vh]">
+                <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-4 py-3 rounded-t-lg font-bold text-center text-lg">
+                    Orçamento
+                </div>
+                <div id="orcamento-content" class="column-content flex-1 overflow-y-auto p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Pré-impressão -->
+            <div class="flex-shrink-0 w-60 bg-white rounded-lg shadow-md flex flex-col h-[65vh]">
+                <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-4 py-3 rounded-t-lg font-bold text-center text-lg">
+                    Pré-impressão
+                </div>
+                <div id="preimpressao-content" class="column-content flex-1 overflow-y-auto p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Produção -->
+            <div class="flex-shrink-0 w-60 bg-white rounded-lg shadow-md flex flex-col h-[65vh]">
+                <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-4 py-3 rounded-t-lg font-bold text-center text-lg">
+                    Produção
+                </div>
+                <div id="producao-content" class="column-content flex-1 overflow-y-auto p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Acabamento -->
+            <div class="flex-shrink-0 w-60 bg-white rounded-lg shadow-md flex flex-col h-[65vh]">
+                <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-4 py-3 rounded-t-lg font-bold text-center text-lg">
+                    Acabamento
+                </div>
+                <div id="acabamento-content" class="column-content flex-1 overflow-y-auto p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Pronto -->
+            <div class="flex-shrink-0 w-60 bg-white rounded-lg shadow-md flex flex-col h-[65vh]">
+                <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-4 py-3 rounded-t-lg font-bold text-center text-lg">
+                    Pronto
+                </div>
+                <div id="pronto-content" class="column-content flex-1 overflow-y-auto p-4">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Pedido -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96 shadow-2xl">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4">Novo Pedido</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Título</label>
+                <input id="inputTitle" type="text" placeholder="Ex: Pedido #003" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Descrição</label>
+                <input id="inputDescription" type="text" placeholder="Ex: Em processamento" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Orçamento</label>
+                <input id="inputPDF" type="file" accept=".pdf" class="hidden">
+                <button type="button" onclick="document.getElementById('inputPDF').click()" class="w-full border-2 border-blue-300 rounded px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold transition-colors">
+                    📁 Anexar Orçamento
+                </button>
+                <p id="pdfName" class="text-sm text-green-600 font-semibold mt-2"></p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Data Prevista</label>
+                <input id="inputDate" type="date" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded font-semibold transition-colors">Cancelar</button>
+                <button onclick="addCard()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentColumn = null;
+        let cardCounter = {};
+        let selectedPDF = null;
+        let selectedPDFName = null;
+        let selectedDate = null;
+
+        // Inicializar contadores
+        function initCounters() {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            columns.forEach(col => {
+                cardCounter[col] = 0;
+            });
+        }
+
+        // Carregar dados do localStorage
+        function loadData() {
+            const data = localStorage.getItem('kanbanData');
+            if (data) {
+                const cards = JSON.parse(data);
+                cards.forEach(card => {
+                    const container = document.getElementById(`${card.column}-content`);
+                    if (container) {
+                        container.innerHTML += createCardHTML(card.title, card.description);
+                    }
+                });
+            } else {
+                // Dados iniciais de demonstração
+                loadDemoData();
+            }
+        }
+
+        // Dados iniciais de demonstração
+        function loadDemoData() {
+            const demoCards = {
+                'orcamento': [
+                    { title: 'Solicitação #001', description: 'Enviado hoje' },
+                    { title: 'Solicitação #002', description: 'Aguardando análise' }
+                ],
+                'preimpressao': [
+                    { title: 'Projeto #001', description: 'Design aprovado' }
+                ],
+                'producao': [
+                    { title: 'Impressão #001', description: 'Em andamento' },
+                    { title: 'Impressão #002', description: 'Fila de espera' }
+                ],
+                'acabamento': [
+                    { title: 'Corte #001', description: 'Cortando' }
+                ],
+                'pronto': [
+                    { title: 'Pedido #001', description: 'Finalizado' },
+                    { title: 'Pedido #002', description: 'Entregue' }
+                ]
+            };
+
+            Object.keys(demoCards).forEach(column => {
+                demoCards[column].forEach(card => {
+                    const container = document.getElementById(`${column}-content`);
+                    if (container) {
+                        container.innerHTML += createCardHTML(card.title, card.description);
+                    }
+                });
+            });
+        }
+
+        // Criar HTML do card
+        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null) {
+            let pdfButton = '';
+            if (pdfBase64) {
+                pdfButton = `<button onclick="downloadPDF('${pdfBase64}', '${pdfName}')" class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xs py-1 rounded transition-colors mt-2">📄 Baixar PDF</button>`;
+            }
+            let dateDisplay = '';
+            if (date) {
+                const dateObj = new Date(date);
+                const formattedDate = dateObj.toLocaleDateString('pt-BR');
+                dateDisplay = `<div class="text-blue-600 text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
+            }
+            return `<div class="bg-white border-2 border-blue-700 rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}">
+                <div class="font-semibold text-blue-700">${title}</div>
+                <div class="text-gray-500 text-sm mt-2">${description}</div>
+                ${dateDisplay}
+                ${pdfButton}
+                <div class="flex gap-2 mt-3 justify-center">
+                    <button onclick="moveCardBack(this)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs py-1 rounded transition-colors p-2">← Voltar</button>
+                    <button onclick="moveCard(this)" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 rounded transition-colors p-2">→ Avançar</button>
+                    <button onclick="deleteCard(this)" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs py-1 rounded transition-colors p-2">🗑 Excluir</button>
+                </div>
+            </div>`;
+        }
+
+        // Abrir modal para adicionar em coluna específica
+        function openModalForColumn(column) {
+            currentColumn = column;
+            openModal();
+        }
+
+        // Abrir modal
+        function openModal() {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('inputTitle').focus();
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('inputTitle').value = '';
+            document.getElementById('inputDescription').value = '';
+            document.getElementById('inputPDF').value = '';
+            document.getElementById('inputDate').value = '';
+            document.getElementById('pdfName').textContent = '';
+            selectedPDF = null;
+            selectedPDFName = null;
+            selectedDate = null;
+            currentColumn = null;
+        }
+
+        // Adicionar card
+        function addCard() {
+            const title = document.getElementById('inputTitle').value.trim();
+            const description = document.getElementById('inputDescription').value.trim();
+
+            if (!title) {
+                alert('Por favor, digite um título para o pedido!');
+                return;
+            }
+
+            if (!currentColumn) {
+                alert('Selecione uma coluna!');
+                return;
+            }
+
+            const container = document.getElementById(`${currentColumn}-content`);
+            if (container) {
+                container.innerHTML += createCardHTML(title, description, selectedPDF, selectedPDFName, selectedDate);
+                saveData();
+                closeModal();
+            }
+        }
+
+        // Processar arquivo PDF selecionado
+        function handlePDFUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedPDF = e.target.result;
+                    selectedPDFName = file.name;
+                    document.getElementById('pdfName').textContent = `✓ ${file.name} carregado`;
+                };
+                reader.readAsDataURL(file);
+            } else if (file) {
+                alert('Por favor, selecione um arquivo PDF válido!');
+                document.getElementById('inputPDF').value = '';
+            }
+        }
+
+        // Fazer download do PDF
+        function downloadPDF(base64Data, fileName) {
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = fileName;
+            link.click();
+        }
+
+        // Capturar data selecionada
+        function handleDateChange(event) {
+            selectedDate = event.target.value;
+        }
+
+        // Salvar dados no localStorage
+        function saveData() {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const cards = [];
+
+            columns.forEach(column => {
+                const container = document.getElementById(`${column}-content`);
+                if (container) {
+                    const cardElements = container.querySelectorAll('.border-2');
+                    cardElements.forEach(card => {
+                        const titleEl = card.querySelector('.font-semibold');
+                        const descEl = card.querySelector('.text-gray-500');
+                        cards.push({
+                            column: column,
+                            title: titleEl?.textContent || '',
+                            description: descEl?.textContent || ''
+                        });
+                    });
+                }
+            });
+
+            localStorage.setItem('kanbanData', JSON.stringify(cards));
+        }
+
+        // Mover card para coluna anterior
+        function moveCardBack(button) {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const card = button.closest('.bg-white');
+            const currentContainer = card.parentElement;
+            const currentColumn = currentContainer.id.replace('-content', '');
+            const currentIndex = columns.indexOf(currentColumn);
+
+            if (currentIndex > 0) {
+                const previousColumn = columns[currentIndex - 1];
+                const previousContainer = document.getElementById(`${previousColumn}-content`);
+                const title = card.querySelector('.font-semibold').textContent;
+                const description = card.querySelector('.text-gray-500').textContent;
+                const dateElement = card.querySelector('.text-blue-600');
+                const pdfBase64 = card.getAttribute('data-pdf');
+                const pdfName = card.getAttribute('data-pdf-name');
+                let date = null;
+                if (dateElement) {
+                    const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                    // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                    const parts = dateText.split('/');
+                    if (parts.length === 3) {
+                        date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+                }
+                
+                previousContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                card.remove();
+                saveData();
+            } else {
+                alert('⚠️ Este pedido já está na primeira coluna!');
+            }
+        }
+
+        // Mover card para próxima coluna
+        function moveCard(button) {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const card = button.closest('.bg-white');
+            const currentContainer = card.parentElement;
+            const currentColumn = currentContainer.id.replace('-content', '');
+            const currentIndex = columns.indexOf(currentColumn);
+
+            if (currentIndex < columns.length - 1) {
+                const nextColumn = columns[currentIndex + 1];
+                const nextContainer = document.getElementById(`${nextColumn}-content`);
+                const title = card.querySelector('.font-semibold').textContent;
+                const description = card.querySelector('.text-gray-500').textContent;
+                const dateElement = card.querySelector('.text-blue-600');
+                const pdfBase64 = card.getAttribute('data-pdf');
+                const pdfName = card.getAttribute('data-pdf-name');
+                let date = null;
+                if (dateElement) {
+                    const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                    // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                    const parts = dateText.split('/');
+                    if (parts.length === 3) {
+                        date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+                }
+                
+                nextContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                card.remove();
+                saveData();
+            } else {
+                alert('⚠️ Este pedido já está na última coluna!');
+            }
+        }
+
+        // Excluir card
+        function deleteCard(button) {
+            if (confirm('Tem certeza que deseja excluir este pedido?')) {
+                const card = button.closest('.bg-white');
+                card.remove();
+                saveData();
+            }
+        }
+
+        // Permitir Enter para adicionar
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('inputTitle').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addCard();
+            });
+            document.getElementById('inputDescription').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addCard();
+            });
+
+            // Processar PDF quando selecionado
+            document.getElementById('inputPDF').addEventListener('change', handlePDFUpload);
+
+            // Capturar data quando selecionada
+            document.getElementById('inputDate').addEventListener('change', handleDateChange);
+
+            // Fechar modal ao clicar fora
+            document.getElementById('modal').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            initCounters();
+            loadData();
+        });
+    </script>
+</body>
+</html>
