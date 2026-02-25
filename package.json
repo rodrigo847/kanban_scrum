@@ -4,16 +4,30 @@
   "description": "Sistema Kanban para Copiadora com Node.js e Tailwind CSS",
   "main": "server.js",
   "scripts": {
+    "build:ts": "tsc",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "ts-node server.ts",
+    "build:css": "node build-css.js",
+    "build": "npm run build:css"
   },
-  "keywords": ["kanban", "copiadora"],
+  "keywords": [
+    "kanban",
+    "copiadora"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.0",
+    "autoprefixer": "^10.4.25",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

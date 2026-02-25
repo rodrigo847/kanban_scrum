@@ -3,6 +3,20 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# Definir index.html como página padrão
+DirectoryIndex index.html
+
+# Reescrever URLs para funcionar sem extensão
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Se não for um arquivo ou diretório existente, redireciona para index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
+
 # Configurações de cache para melhor performance
 <IfModule mod_expires.c>
     ExpiresActive On
@@ -15,3 +29,6 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript
 </IfModule>
+
+# Prevenir listagem de diretórios
+Options -Indexes
