@@ -379,10 +379,11 @@
         function handlePDFUpload(event) {
             const file = event.target.files[0];
             if (file && file.type === 'application/pdf') {
-                // Verificar tamanho do arquivo (limite: 800KB para segurança)
-                const maxSize = 800 * 1024; // 800KB
+                // Verificar tamanho do arquivo (limite: 700KB para segurança)
+                // Base64 aumenta em ~33%, então 700KB vira ~930KB (dentro do limite 1MB)
+                const maxSize = 700 * 1024; // 700KB
                 if (file.size > maxSize) {
-                    alert(`⚠️ PDF muito grande!\n\nTamanho: ${(file.size / 1024).toFixed(0)}KB\nLimite: 800KB\n\nPor favor, use um arquivo menor ou comprima o PDF.`);
+                    alert(`⚠️ PDF muito grande!\n\nTamanho: ${(file.size / 1024).toFixed(0)}KB\nLimite: 700KB\n\nPor favor, use um arquivo menor ou comprima o PDF.\n\nDica: Use ferramentas online como ilovepdf.com ou smallpdf.com para comprimir.`);
                     document.getElementById('inputPDF').value = '';
                     return;
                 }
@@ -475,17 +476,31 @@
             
             console.log(`💾 Salvando ${cards.length} cartão(ões) no Firestore...`);
             
-            // Verificar tamanho dos documentos
+            // VERIFICAR TAMANHO ANTES DE FAZER QUALQUER COISA
+            let hasOversizedCard = false;
+            let errorMessage = '';
+            
             cards.forEach((card, index) => {
                 const cardSize = JSON.stringify(card).length;
                 const cardSizeKB = (cardSize / 1024).toFixed(2);
                 console.log(`  Cartão ${index + 1}: ${card.title} - ${cardSizeKB}KB`);
                 
-                if (cardSize > 1000000) { // 1MB
+                if (cardSize > 1000000) { // 1MB - limite do Firestore
+                    hasOversizedCard = true;
+                    errorMessage += `\n• "${card.title}" - ${cardSizeKB}KB`;
                     console.error(`❌ ERRO: Cartão "${card.title}" excede 1MB (${cardSizeKB}KB)!`);
                 }
             });
             
+            // Se houver cartão muito grande, ABORTAR sem deletar nada
+            if (hasOversizedCard) {
+                isSavingLocally = false;
+                alert(`❌ IMPOSSÍVEL SALVAR!\n\nOs seguintes cartões excedem o limite de 1MB do Firebase:${errorMessage}\n\n⚠️ Solução: Remova o PDF ou use um arquivo menor (máximo 700KB).`);
+                console.error('🚫 Salvamento abortado! Cartão(ões) muito grande(s). Dados anteriores preservados.');
+                return; // ABORTAR AQUI - NÃO DELETA NADA
+            }
+            
+            // Se passou na verificação, prosseguir com salvamento
             // Primeiro limpar todos os cards existentes
             db.collection('cards').get().then((querySnapshot) => {
                 console.log(`🗑️ Deletando ${querySnapshot.size} cartão(ões) antigo(s)...`);
