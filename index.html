@@ -9,6 +9,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 max-h-screen">
     <div class="container mx-auto px-5 py-8">
@@ -122,14 +123,17 @@
 
         // Inicializar Firebase
         let db = null;
+        let storage = null;
         let useFirebase = false;
         
         try {
             if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
+                storage = firebase.storage();
                 useFirebase = true;
                 console.log("✅ Firebase conectado - Sincronização ativada!");
+                console.log("✅ Firebase Storage ativado - PDFs até 5MB!");
             } else {
                 console.warn("⚠️ Firebase não configurado - Usando localStorage");
             }
@@ -143,6 +147,7 @@
         let cardCounter = {};
         let selectedPDF = null;
         let selectedPDFName = null;
+        let selectedPDFFile = null; // Arquivo PDF original para upload no Storage
         let selectedDate = null;
         let isSavingLocally = false; // Flag para evitar race condition com listener
 
@@ -348,6 +353,7 @@
             document.getElementById('pdfName').textContent = '';
             selectedPDF = null;
             selectedPDFName = null;
+            selectedPDFFile = null;
             selectedDate = null;
             currentColumn = null;
         }
@@ -379,15 +385,18 @@
         function handlePDFUpload(event) {
             const file = event.target.files[0];
             if (file && file.type === 'application/pdf') {
-                // Verificar tamanho do arquivo (limite: 700KB para segurança)
-                // Base64 aumenta em ~33%, então 700KB vira ~930KB (dentro do limite 1MB)
-                const maxSize = 700 * 1024; // 700KB
+                // Verificar tamanho do arquivo (limite: 5MB para Firebase Storage)
+                const maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
-                    alert(`⚠️ PDF muito grande!\n\nTamanho: ${(file.size / 1024).toFixed(0)}KB\nLimite: 700KB\n\nPor favor, use um arquivo menor ou comprima o PDF.\n\nDica: Use ferramentas online como ilovepdf.com ou smallpdf.com para comprimir.`);
+                    alert(`⚠️ PDF muito grande!\n\nTamanho: ${(file.size / 1024 / 1024).toFixed(2)}MB\nLimite: 5MB\n\nPor favor, use um arquivo menor ou comprima o PDF.\n\nDica: Use ferramentas online como ilovepdf.com ou smallpdf.com para comprimir.`);
                     document.getElementById('inputPDF').value = '';
                     return;
                 }
                 
+                // Guardar arquivo original para upload no Storage
+                selectedPDFFile = file;
+                
+                // Criar base64 temporário para preview (usado apenas se não tiver Firebase)
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     selectedPDF = e.target.result;
@@ -469,14 +478,65 @@
             }
         }
 
+        // Upload de PDF para Firebase Storage
+        async function uploadPDFToStorage(pdfBase64, pdfName, cardTitle) {
+            if (!storage || !pdfBase64 || !useFirebase) {
+                return pdfBase64; // Retorna base64 se não tiver Storage
+            }
+
+            try {
+                console.log(`📤 Fazendo upload do PDF "${pdfName}" para Storage...`);
+                
+                // Converter base64 para blob
+                const base64Data = pdfBase64.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+                // Nome único para o arquivo
+                const timestamp = Date.now();
+                const safeName = pdfName.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `pdfs/${timestamp}_${safeName}`;
+
+                // Upload para Storage
+                const storageRef = storage.ref(fileName);
+                const snapshot = await storageRef.put(blob);
+                
+                // Obter URL de download
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                console.log(`✅ PDF enviado com sucesso! URL: ${downloadURL.substring(0, 50)}...`);
+                
+                return downloadURL;
+            } catch (error) {
+                console.error(`❌ Erro ao fazer upload do PDF "${pdfName}":`, error);
+                console.warn('⚠️ Usando base64 como fallback');
+                return pdfBase64; // Fallback para base64
+            }
+        }
+
         // Salvar dados no Firestore
-        function saveToFirestore(cards) {
+        async function saveToFirestore(cards) {
             // Ativar flag para evitar race condition
             isSavingLocally = true;
             
             console.log(`💾 Salvando ${cards.length} cartão(ões) no Firestore...`);
             
-            // VERIFICAR TAMANHO ANTES DE FAZER QUALQUER COISA
+            // FAZER UPLOAD DOS PDFs PARA STORAGE PRIMEIRO
+            console.log('📤 Verificando PDFs para upload no Storage...');
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                if (card.pdfBase64 && card.pdfBase64.startsWith('data:')) {
+                    console.log(`  - Fazendo upload do PDF do cartão "${card.title}"...`);
+                    // Substituir base64 pela URL do Storage
+                    card.pdfBase64 = await uploadPDFToStorage(card.pdfBase64, card.pdfName, card.title);
+                }
+            }
+            
+            // VERIFICAR TAMANHO APÓS UPLOAD (agora com URLs em vez de base64)
             let hasOversizedCard = false;
             let errorMessage = '';
             
@@ -495,7 +555,7 @@
             // Se houver cartão muito grande, ABORTAR sem deletar nada
             if (hasOversizedCard) {
                 isSavingLocally = false;
-                alert(`❌ IMPOSSÍVEL SALVAR!\n\nOs seguintes cartões excedem o limite de 1MB do Firebase:${errorMessage}\n\n⚠️ Solução: Remova o PDF ou use um arquivo menor (máximo 700KB).`);
+                alert(`❌ IMPOSSÍVEL SALVAR!\n\nOs seguintes cartões excedem o limite de 1MB do Firebase:${errorMessage}\n\n⚠️ Erro inesperado - entre em contato com suporte.`);
                 console.error('🚫 Salvamento abortado! Cartão(ões) muito grande(s). Dados anteriores preservados.');
                 return; // ABORTAR AQUI - NÃO DELETA NADA
             }
