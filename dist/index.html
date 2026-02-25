@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban - Copiadora</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+    <link rel="stylesheet" href="/output.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col overflow-hidden">
+    <div class="container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col w-full max-w-full overflow-hidden">
+        <!-- Header -->
+        <div class="text-center mb-4 sm:mb-6 md:mb-8">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 COPIADORA</h1>
+            <p class="text-blue-100 text-xs sm:text-sm md:text-base">Sistema de fluxo de trabalho</p>
+            <button onclick="openModalForColumn('orcamento')" class="mt-2 sm:mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base">
+                ➕ Novo Pedido
+            </button>
+        </div>
+
+        <!-- Board -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-y-auto sm:overflow-x-auto sm:overflow-y-hidden pb-4 items-stretch sm:items-start w-full flex-1 sm:justify-center">
+            <!-- Coluna: Orçamento -->
+            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+                <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
+                    Orçamento
+                </div>
+                <div id="orcamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Pré-impressão -->
+            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+                <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
+                    Pré-impressão
+                </div>
+                <div id="preimpressao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Produção -->
+            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+                <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
+                    Produção
+                </div>
+                <div id="producao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Acabamento -->
+            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+                <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
+                    Acabamento
+                </div>
+                <div id="acabamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                </div>
+            </div>
+
+            <!-- Coluna: Pronto -->
+            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+                <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
+                    Pronto
+                </div>
+                <div id="pronto-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Pedido -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-[90%] sm:w-96 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4">Novo Pedido</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Título</label>
+                <input id="inputTitle" type="text" placeholder="Ex: Pedido #003" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Descrição</label>
+                <input id="inputDescription" type="text" placeholder="Ex: Em processamento" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Data Prevista</label>
+                <input id="inputDate" type="date" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded font-semibold transition-colors">Cancelar</button>
+                <button onclick="addCard()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURAÇÃO FIREBASE ====================
+        // Credenciais do projeto Firebase
+        // https://console.firebase.google.com
+        const firebaseConfig = {
+            apiKey: "AIzaSyBF7HegVx8bLx18obQdGzEn4ZyN2R6l6ck",
+            authDomain: "kanban-copiadora-laser.firebaseapp.com",
+            projectId: "kanban-copiadora-laser",
+            storageBucket: "kanban-copiadora-laser.firebasestorage.app",
+            messagingSenderId: "119769143692",
+            appId: "1:119769143692:web:4e9c7e3ee21d3c22a45ea9",
+            measurementId: "G-K94WXPN1YE"
+        };
+
+        // Inicializar Firebase
+        let db = null;
+        let useFirebase = false;
+        
+        try {
+            if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                useFirebase = true;
+                console.log("✅ Firebase conectado - Sincronização ativada!");
+            } else {
+                console.warn("⚠️ Firebase não configurado - Usando localStorage");
+            }
+        } catch (error) {
+            console.error("❌ Erro ao conectar Firebase:", error);
+            console.warn("⚠️ Usando localStorage como fallback");
+        }
+        // ===============================================================
+
+        let currentColumn = null;
+        let cardCounter = {};
+        let selectedDate = null;
+        let isSavingLocally = false; // Flag para evitar race condition com listener
+
+        // Inicializar contadores
+        function initCounters() {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            columns.forEach(col => {
+                cardCounter[col] = 0;
+            });
+        }
+
+        // Carregar dados do Firebase ou localStorage
+        function loadData() {
+            if (useFirebase) {
+                // Carregar do Firestore
+                loadFromFirestore();
+            } else {
+                // Carregar do localStorage
+                const data = localStorage.getItem('kanbanData');
+                if (data) {
+                    const cards = JSON.parse(data);
+                    renderCards(cards);
+                } else {
+                    // Kanban inicia vazio - sem dados de demonstração
+                }
+            }
+        }
+
+        // Carregar dados do Firestore
+        function loadFromFirestore() {
+            console.log('🔍 Carregando dados do Firestore...');
+            db.collection('cards').orderBy('createdAt', 'asc').get()
+                .then((querySnapshot) => {
+                    const cards = [];
+                    console.log(`📋 Firestore retornou ${querySnapshot.size} documento(s)`);
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        console.log(`  - Cartão encontrado: ${data.title} (Coluna: ${data.column})`);
+                        cards.push(data);
+                    });
+                    
+                    if (cards.length > 0) {
+                        console.log(`✅ Renderizando ${cards.length} cartão(ões)`);
+                        renderCards(cards);
+                    } else {
+                        console.log('🌀 Nenhum cartão no Firestore - Kanban vazio');
+                    }
+                    // Kanban inicia vazio se nenhum cartão no Firestore
+
+                    // Listener em tempo real para sincronização
+                    setupRealtimeListener();
+                })
+                .catch((error) => {
+                    console.error("❌ ERRO ao carregar Firestore:", error);
+                    console.error("Detalhes do erro:", error.message);
+                    // Fallback para localStorage
+                    const data = localStorage.getItem('kanbanData');
+                    if (data) {
+                        console.log('⚠️ Usando localStorage como fallback');
+                        renderCards(JSON.parse(data));
+                    } else {
+                        loadDemoData();
+                    }
+                });
+        }
+
+        // Configurar listener em tempo real
+        function setupRealtimeListener() {
+            db.collection('cards').onSnapshot((snapshot) => {
+                // Ignorar mudanças enquanto está salvando localmente
+                if (isSavingLocally) return;
+                
+                // Recarregar sempre que houver qualquer mudança no snapshot
+                const changes = snapshot.docChanges();
+                if (changes.length > 0) {
+                    console.log(`🔄 Sincronização: ${changes.length} mudança(s) detectada(s)`);
+                    reloadFromFirestore();
+                }
+            });
+        }
+
+        // Recarregar dados do Firestore (para sincronização em tempo real)
+        function reloadFromFirestore() {
+            db.collection('cards').orderBy('createdAt', 'asc').get()
+                .then((querySnapshot) => {
+                    const cards = [];
+                    querySnapshot.forEach((doc) => {
+                        cards.push(doc.data());
+                    });
+                    
+                    // Limpar todas as colunas
+                    const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+                    columns.forEach(col => {
+                        const container = document.getElementById(`${col}-content`);
+                        if (container) container.innerHTML = '';
+                    });
+                    
+                    renderCards(cards);
+                })
+                .catch((error) => {
+                    console.error("Erro ao recarregar:", error);
+                });
+        }
+
+        // Renderizar cards na tela
+        function renderCards(cards) {
+            cards.forEach(card => {
+                const container = document.getElementById(`${card.column}-content`);
+                if (container) {
+                    container.innerHTML += createCardHTML(
+                        card.title, 
+                        card.description, 
+                        card.pdfBase64 || null, 
+                        card.pdfName || null,
+                        card.date || null
+                    );
+                }
+            });
+        }
+
+        // Dados iniciais de demonstração - DESATIVADO
+        function loadDemoData() {
+            // Kanban iniciará vazio
+            // Se quiser adicionar dados padrão novamente, ative esse código:
+            /*
+            const demoCards = {
+                'orcamento': [
+                    { title: 'Solicitação #001', description: 'Enviado hoje' },
+                    { title: 'Solicitação #002', description: 'Aguardando análise' }
+                ],
+                'preimpressao': [
+                    { title: 'Projeto #001', description: 'Design aprovado' }
+                ],
+                'producao': [
+                    { title: 'Impressão #001', description: 'Em andamento' },
+                    { title: 'Impressão #002', description: 'Fila de espera' }
+                ],
+                'acabamento': [
+                    { title: 'Corte #001', description: 'Cortando' }
+                ],
+                'pronto': [
+                    { title: 'Pedido #001', description: 'Finalizado' },
+                    { title: 'Pedido #002', description: 'Entregue' }
+                ]
+            };
+
+            Object.keys(demoCards).forEach(column => {
+                demoCards[column].forEach(card => {
+                    const container = document.getElementById(`${column}-content`);
+                    if (container) {
+                        container.innerHTML += createCardHTML(card.title, card.description);
+                    }
+                });
+            });
+            */
+        }
+
+        // Criar HTML do card
+        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null) {
+            let pdfButton = '';
+            if (pdfBase64) {
+                pdfButton = `<button onclick="downloadPDF('${pdfBase64}', '${pdfName}')" class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xs py-1 rounded transition-colors mt-2">📄 Baixar PDF</button>`;
+            }
+            let dateDisplay = '';
+            if (date) {
+                const dateObj = new Date(date);
+                const formattedDate = dateObj.toLocaleDateString('pt-BR');
+                dateDisplay = `<div class="text-blue-600 text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
+            }
+            return `<div class="bg-white border-2 border-blue-700 rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}">
+                <div class="font-semibold text-blue-700">${title}</div>
+                <div class="text-gray-500 text-sm mt-2">${description}</div>
+                ${dateDisplay}
+                ${pdfButton}
+                <div class="flex gap-2 mt-3 justify-center">
+                    <button onclick="moveCardBack(this)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs py-1 rounded transition-colors p-2">← Voltar</button>
+                    <button onclick="moveCard(this)" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 rounded transition-colors p-2">→ Avançar</button>
+                    <button onclick="deleteCard(this)" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs py-1 rounded transition-colors p-2">🗑 Excluir</button>
+                </div>
+            </div>`;
+        }
+
+        // Abrir modal para adicionar em coluna específica
+        function openModalForColumn(column) {
+            currentColumn = column;
+            openModal();
+        }
+
+        // Abrir modal
+        function openModal() {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('inputTitle').focus();
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('inputTitle').value = '';
+            document.getElementById('inputDescription').value = '';
+            document.getElementById('inputDate').value = '';
+            selectedDate = null;
+            currentColumn = null;
+        }
+
+        // Adicionar card
+        function addCard() {
+            const title = document.getElementById('inputTitle').value.trim();
+            const description = document.getElementById('inputDescription').value.trim();
+
+            if (!title) {
+                alert('Por favor, digite um título para o pedido!');
+                return;
+            }
+
+            if (!currentColumn) {
+                alert('Selecione uma coluna!');
+                return;
+            }
+
+            const container = document.getElementById(`${currentColumn}-content`);
+            if (container) {
+                container.innerHTML += createCardHTML(title, description, null, null, selectedDate);
+                saveData();
+                closeModal();
+            }
+        }
+
+        // Capturar data selecionada
+        function handleDateChange(event) {
+            selectedDate = event.target.value;
+        }
+
+        // Salvar dados no Firebase ou localStorage
+        function saveData() {
+            console.log('💾 Iniciando salvamento...');
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const cards = [];
+
+            columns.forEach(column => {
+                const container = document.getElementById(`${column}-content`);
+                if (container) {
+                    const cardElements = container.querySelectorAll('.border-2');
+                    console.log(`  - Coluna "${column}": ${cardElements.length} cartão(ões)`);
+                    cardElements.forEach(card => {
+                        const titleEl = card.querySelector('.font-semibold');
+                        const descEl = card.querySelector('.text-gray-500');
+                        const pdfBase64 = card.getAttribute('data-pdf') || null;
+                        const pdfName = card.getAttribute('data-pdf-name') || null;
+                        const dateElement = card.querySelector('.text-blue-600');
+                        let date = null;
+                        if (dateElement) {
+                            const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                            // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                            const parts = dateText.split('/');
+                            if (parts.length === 3) {
+                                date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                            }
+                        }
+                        
+                        cards.push({
+                            column: column,
+                            title: titleEl?.textContent || '',
+                            description: descEl?.textContent || '',
+                            pdfBase64: pdfBase64,
+                            pdfName: pdfName,
+                            date: date,
+                            createdAt: Date.now()
+                        });
+                    });
+                }
+            });
+
+            console.log(`📊 Total de cartões coletados: ${cards.length}`);
+
+            if (useFirebase) {
+                console.log('🎯 Salvando no Firestore...');
+                // Salvar no Firestore
+                saveToFirestore(cards);
+            } else {
+                console.log('💾 Salvando no localStorage...');
+                // Salvar no localStorage (fallback)
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+            }
+        }
+
+        // Salvar dados no Firestore
+        function saveToFirestore(cards) {
+            // Ativar flag para evitar race condition
+            isSavingLocally = true;
+            
+            console.log(`💾 Salvando ${cards.length} cartão(ões) no Firestore...`);
+            // VERIFICAR TAMANHO APÓS UPLOAD (agora com URLs em vez de base64)
+            let hasOversizedCard = false;
+            let errorMessage = '';
+            
+            cards.forEach((card, index) => {
+                const cardSize = JSON.stringify(card).length;
+                const cardSizeKB = (cardSize / 1024).toFixed(2);
+                console.log(`  Cartão ${index + 1}: ${card.title} - ${cardSizeKB}KB`);
+                
+                if (cardSize > 1000000) { // 1MB - limite do Firestore
+                    hasOversizedCard = true;
+                    errorMessage += `\n• "${card.title}" - ${cardSizeKB}KB`;
+                    console.error(`❌ ERRO: Cartão "${card.title}" excede 1MB (${cardSizeKB}KB)!`);
+                }
+            });
+            
+            // Se houver cartão muito grande, ABORTAR sem deletar nada
+            if (hasOversizedCard) {
+                isSavingLocally = false;
+                alert(`❌ IMPOSSÍVEL SALVAR!\n\nOs seguintes cartões excedem o limite de 1MB do Firebase:${errorMessage}\n\n⚠️ Erro inesperado - entre em contato com suporte.`);
+                console.error('🚫 Salvamento abortado! Cartão(ões) muito grande(s). Dados anteriores preservados.');
+                return; // ABORTAR AQUI - NÃO DELETA NADA
+            }
+            
+            // Se passou na verificação, prosseguir com salvamento
+            // Primeiro limpar todos os cards existentes
+            db.collection('cards').get().then((querySnapshot) => {
+                console.log(`🗑️ Deletando ${querySnapshot.size} cartão(ões) antigo(s)...`);
+                const batch = db.batch();
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                return batch.commit();
+            }).then(() => {
+                // Pequeno delay antes de inserir novos para garantir que delete foi processado
+                return new Promise(resolve => setTimeout(resolve, 200));
+            }).then(() => {
+                // Depois adicionar os novos cards
+                console.log(`➕ Inserindo ${cards.length} cartão(ões) novo(s)...`);
+                const batch = db.batch();
+                cards.forEach((card, index) => {
+                    const docRef = db.collection('cards').doc(`card_${Date.now()}_${index}`);
+                    batch.set(docRef, card);
+                });
+                return batch.commit();
+            }).then(() => {
+                console.log('✅ Batch commit concluído! Verificando...');
+                // Verificar se documentos foram realmente criados
+                return db.collection('cards').get();
+            }).then((verifySnapshot) => {
+                console.log(`✔️ Verificação: ${verifySnapshot.size} documento(s) agora no Firestore`);
+                if (verifySnapshot.size === cards.length) {
+                    console.log('✅ SUCESSO COMPLETO! Todos os cartões foram salvos!');
+                } else {
+                    console.warn(`⚠️ AVISO: Esperava ${cards.length} cartões, mas encontrou ${verifySnapshot.size}`);
+                }
+                
+                // Também salvar no localStorage como backup
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+                
+                // Desativar flag após salvar com pequeno delay
+                setTimeout(() => {
+                    isSavingLocally = false;
+                    console.log('🔓 Sincronização multi-tela reativada');
+                }, 800);
+            }).catch((error) => {
+                console.error('❌ ERRO ao salvar no Firestore:', error);
+                console.error('Tipo do erro:', error.code);
+                console.error('Mensagem:', error.message);
+                if (error.code === 'permission-denied') {
+                    console.error('🚫 PERMISSÃO NEGADA! Verifique as regras do Firestore!');
+                    alert('⚠️ ERRO DE PERMISSÃO!\n\nO Firebase está bloqueando o salvamento.\nVerifique as regras de segurança no Firebase Console.');
+                } else {
+                    alert('⚠️ Erro ao salvar no Firebase!\n\nVerifique o console (F12) para mais detalhes.\nPossível causa: PDF muito grande ou problemas de conexão.');
+                }
+                // Fallback para localStorage
+                localStorage.setItem('kanbanData', JSON.stringify(cards));
+                isSavingLocally = false;
+            });
+        }
+
+        // Mover card para coluna anterior
+        function moveCardBack(button) {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const card = button.closest('.bg-white');
+            const currentContainer = card.parentElement;
+            const currentColumn = currentContainer.id.replace('-content', '');
+            const currentIndex = columns.indexOf(currentColumn);
+
+            if (currentIndex > 0) {
+                const previousColumn = columns[currentIndex - 1];
+                const previousContainer = document.getElementById(`${previousColumn}-content`);
+                const title = card.querySelector('.font-semibold').textContent;
+                const description = card.querySelector('.text-gray-500').textContent;
+                const dateElement = card.querySelector('.text-blue-600');
+                const pdfBase64 = card.getAttribute('data-pdf');
+                const pdfName = card.getAttribute('data-pdf-name');
+                let date = null;
+                if (dateElement) {
+                    const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                    // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                    const parts = dateText.split('/');
+                    if (parts.length === 3) {
+                        date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+                }
+                
+                previousContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                card.remove();
+                saveData();
+            } else {
+                alert('⚠️ Este pedido já está na primeira coluna!');
+            }
+        }
+
+        // Mover card para próxima coluna
+        function moveCard(button) {
+            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            const card = button.closest('.bg-white');
+            const currentContainer = card.parentElement;
+            const currentColumn = currentContainer.id.replace('-content', '');
+            const currentIndex = columns.indexOf(currentColumn);
+
+            if (currentIndex < columns.length - 1) {
+                const nextColumn = columns[currentIndex + 1];
+                const nextContainer = document.getElementById(`${nextColumn}-content`);
+                const title = card.querySelector('.font-semibold').textContent;
+                const description = card.querySelector('.text-gray-500').textContent;
+                const dateElement = card.querySelector('.text-blue-600');
+                const pdfBase64 = card.getAttribute('data-pdf');
+                const pdfName = card.getAttribute('data-pdf-name');
+                let date = null;
+                if (dateElement) {
+                    const dateText = dateElement.textContent.replace('📅 ', '').trim();
+                    // Converter data de dd/mm/yyyy para yyyy-mm-dd
+                    const parts = dateText.split('/');
+                    if (parts.length === 3) {
+                        date = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+                }
+                
+                nextContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                card.remove();
+                saveData();
+            } else {
+                alert('⚠️ Este pedido já está na última coluna!');
+            }
+        }
+
+        // Excluir card
+        function deleteCard(button) {
+            if (confirm('Tem certeza que deseja excluir este pedido?')) {
+                const card = button.closest('.bg-white');
+                card.remove();
+                saveData();
+            }
+        }
+
+        // Permitir Enter para adicionar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Adicionar listeners com verificação de null
+            const inputTitle = document.getElementById('inputTitle');
+            const inputDescription = document.getElementById('inputDescription');
+            const inputDate = document.getElementById('inputDate');
+            const modal = document.getElementById('modal');
+
+            if (inputTitle) {
+                inputTitle.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') addCard();
+                });
+            }
+
+            if (inputDescription) {
+                inputDescription.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') addCard();
+                });
+            }
+
+            if (inputDate) {
+                inputDate.addEventListener('change', handleDateChange);
+            }
+
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) closeModal();
+                });
+            }
+
+            initCounters();
+            loadData();
+        });
+    </script>
+</body>
+</html>
