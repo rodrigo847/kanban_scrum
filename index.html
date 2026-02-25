@@ -206,12 +206,12 @@
                 // Ignorar mudanças enquanto está salvando localmente
                 if (isSavingLocally) return;
                 
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added' || change.type === 'modified') {
-                        // Recarregar dados quando houver mudanças
-                        reloadFromFirestore();
-                    }
-                });
+                // Recarregar sempre que houver qualquer mudança no snapshot
+                const changes = snapshot.docChanges();
+                if (changes.length > 0) {
+                    console.log(`🔄 Sincronização: ${changes.length} mudança(s) detectada(s)`);
+                    reloadFromFirestore();
+                }
             });
         }
 
@@ -455,6 +455,9 @@
                 });
                 return batch.commit();
             }).then(() => {
+                // Pequeno delay antes de inserir novos para garantir que delete foi processado
+                return new Promise(resolve => setTimeout(resolve, 200));
+            }).then(() => {
                 // Depois adicionar os novos cards
                 const batch = db.batch();
                 cards.forEach((card, index) => {
@@ -470,9 +473,8 @@
                 // Desativar flag após salvar com pequeno delay
                 setTimeout(() => {
                     isSavingLocally = false;
-                    // Forçar uma recarga para sincronizar com dados remotos
-                    reloadFromFirestore();
-                }, 500);
+                    console.log('🔓 Sincronização multi-tela reativada');
+                }, 800);
             }).catch((error) => {
                 console.error('Erro ao salvar no Firestore:', error);
                 // Fallback para localStorage
