@@ -144,6 +144,7 @@
         let selectedPDF = null;
         let selectedPDFName = null;
         let selectedDate = null;
+        let isSavingLocally = false; // Flag para evitar race condition com listener
 
         // Inicializar contadores
         function initCounters() {
@@ -202,6 +203,9 @@
         // Configurar listener em tempo real
         function setupRealtimeListener() {
             db.collection('cards').onSnapshot((snapshot) => {
+                // Ignorar mudanças enquanto está salvando localmente
+                if (isSavingLocally) return;
+                
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === 'added' || change.type === 'modified') {
                         // Recarregar dados quando houver mudanças
@@ -440,6 +444,9 @@
 
         // Salvar dados no Firestore
         function saveToFirestore(cards) {
+            // Ativar flag para evitar race condition
+            isSavingLocally = true;
+            
             // Primeiro limpar todos os cards existentes
             db.collection('cards').get().then((querySnapshot) => {
                 const batch = db.batch();
@@ -459,10 +466,18 @@
                 console.log('✓ Dados salvos no Firestore');
                 // Também salvar no localStorage como backup
                 localStorage.setItem('kanbanData', JSON.stringify(cards));
+                
+                // Desativar flag após salvar com pequeno delay
+                setTimeout(() => {
+                    isSavingLocally = false;
+                    // Forçar uma recarga para sincronizar com dados remotos
+                    reloadFromFirestore();
+                }, 500);
             }).catch((error) => {
                 console.error('Erro ao salvar no Firestore:', error);
                 // Fallback para localStorage
                 localStorage.setItem('kanbanData', JSON.stringify(cards));
+                isSavingLocally = false;
             });
         }
 
