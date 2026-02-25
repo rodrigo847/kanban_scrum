@@ -165,8 +165,7 @@
                     const cards = JSON.parse(data);
                     renderCards(cards);
                 } else {
-                    // Dados iniciais de demonstração
-                    loadDemoData();
+                    // Kanban inicia vazio - sem dados de demonstração
                 }
             }
         }
@@ -182,9 +181,8 @@
                     
                     if (cards.length > 0) {
                         renderCards(cards);
-                    } else {
-                        loadDemoData();
                     }
+                    // Kanban inicia vazio se nenhum cartão no Firestore
 
                     // Listener em tempo real para sincronização
                     setupRealtimeListener();
@@ -252,8 +250,11 @@
             });
         }
 
-        // Dados iniciais de demonstração
+        // Dados iniciais de demonstração - DESATIVADO
         function loadDemoData() {
+            // Kanban iniciará vazio
+            // Se quiser adicionar dados padrão novamente, ative esse código:
+            /*
             const demoCards = {
                 'orcamento': [
                     { title: 'Solicitação #001', description: 'Enviado hoje' },
@@ -283,6 +284,7 @@
                     }
                 });
             });
+            */
         }
 
         // Criar HTML do card
