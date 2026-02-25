@@ -173,15 +173,23 @@
 
         // Carregar dados do Firestore
         function loadFromFirestore() {
+            console.log('🔍 Carregando dados do Firestore...');
             db.collection('cards').orderBy('createdAt', 'asc').get()
                 .then((querySnapshot) => {
                     const cards = [];
+                    console.log(`📋 Firestore retornou ${querySnapshot.size} documento(s)`);
+                    
                     querySnapshot.forEach((doc) => {
-                        cards.push(doc.data());
+                        const data = doc.data();
+                        console.log(`  - Cartão encontrado: ${data.title} (Coluna: ${data.column})`);
+                        cards.push(data);
                     });
                     
                     if (cards.length > 0) {
+                        console.log(`✅ Renderizando ${cards.length} cartão(ões)`);
                         renderCards(cards);
+                    } else {
+                        console.log('🌀 Nenhum cartão no Firestore - Kanban vazio');
                     }
                     // Kanban inicia vazio se nenhum cartão no Firestore
 
@@ -189,10 +197,12 @@
                     setupRealtimeListener();
                 })
                 .catch((error) => {
-                    console.error("Erro ao carregar Firestore:", error);
+                    console.error("❌ ERRO ao carregar Firestore:", error);
+                    console.error("Detalhes do erro:", error.message);
                     // Fallback para localStorage
                     const data = localStorage.getItem('kanbanData');
                     if (data) {
+                        console.log('⚠️ Usando localStorage como fallback');
                         renderCards(JSON.parse(data));
                     } else {
                         loadDemoData();
@@ -407,6 +417,7 @@
 
         // Salvar dados no Firebase ou localStorage
         function saveData() {
+            console.log('💾 Iniciando salvamento...');
             const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
             const cards = [];
 
@@ -414,6 +425,7 @@
                 const container = document.getElementById(`${column}-content`);
                 if (container) {
                     const cardElements = container.querySelectorAll('.border-2');
+                    console.log(`  - Coluna "${column}": ${cardElements.length} cartão(ões)`);
                     cardElements.forEach(card => {
                         const titleEl = card.querySelector('.font-semibold');
                         const descEl = card.querySelector('.text-gray-500');
@@ -443,10 +455,14 @@
                 }
             });
 
+            console.log(`📊 Total de cartões coletados: ${cards.length}`);
+
             if (useFirebase) {
+                console.log('🎯 Salvando no Firestore...');
                 // Salvar no Firestore
                 saveToFirestore(cards);
             } else {
+                console.log('💾 Salvando no localStorage...');
                 // Salvar no localStorage (fallback)
                 localStorage.setItem('kanbanData', JSON.stringify(cards));
             }
@@ -491,7 +507,17 @@
                 });
                 return batch.commit();
             }).then(() => {
-                console.log('✅ Dados salvos no Firestore com sucesso!');
+                console.log('✅ Batch commit concluído! Verificando...');
+                // Verificar se documentos foram realmente criados
+                return db.collection('cards').get();
+            }).then((verifySnapshot) => {
+                console.log(`✔️ Verificação: ${verifySnapshot.size} documento(s) agora no Firestore`);
+                if (verifySnapshot.size === cards.length) {
+                    console.log('✅ SUCESSO COMPLETO! Todos os cartões foram salvos!');
+                } else {
+                    console.warn(`⚠️ AVISO: Esperava ${cards.length} cartões, mas encontrou ${verifySnapshot.size}`);
+                }
+                
                 // Também salvar no localStorage como backup
                 localStorage.setItem('kanbanData', JSON.stringify(cards));
                 
@@ -502,8 +528,14 @@
                 }, 800);
             }).catch((error) => {
                 console.error('❌ ERRO ao salvar no Firestore:', error);
-                console.error('Detalhes:', error.message);
-                alert('⚠️ Erro ao salvar no Firebase!\n\nVerifique o console (F12) para mais detalhes.\nPossível causa: PDF muito grande.');
+                console.error('Tipo do erro:', error.code);
+                console.error('Mensagem:', error.message);
+                if (error.code === 'permission-denied') {
+                    console.error('🚫 PERMISSÃO NEGADA! Verifique as regras do Firestore!');
+                    alert('⚠️ ERRO DE PERMISSÃO!\n\nO Firebase está bloqueando o salvamento.\nVerifique as regras de segurança no Firebase Console.');
+                } else {
+                    alert('⚠️ Erro ao salvar no Firebase!\n\nVerifique o console (F12) para mais detalhes.\nPossível causa: PDF muito grande ou problemas de conexão.');
+                }
                 // Fallback para localStorage
                 localStorage.setItem('kanbanData', JSON.stringify(cards));
                 isSavingLocally = false;
