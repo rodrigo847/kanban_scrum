@@ -76,24 +76,13 @@
                     ➕ Novo Pedido
                 </button>
             </div>
-            <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 400px;">
-                <div class="search-panel">
-                    <div class="flex flex-col sm:flex-row items-stretch gap-1.5">
-                        <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido" class="w-full border border-blue-200 bg-white rounded mx-2-2.5 my-2-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
-                        <div class="search-actions flex items-center gap-1.5">
-                            <button onclick="goToFirstFoundCard()" class="px-2.5 my-2 mx-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">📍 Localizar</button>
-                            <button onclick="clearSearch()" class="px-2.5 py-1.5 mx-0.5 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">✖ Limpar</button>
-                        </div>
-                    </div>
-                    <p id="search-status" class="text-blue-100 text-xs mt-1 min-h-4"></p>
-                </div>
-            </div>
+            
         </div>
 
         <!-- Board -->
-        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-y-auto overflow-x-hidden">
+        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-y-auto">
             <!-- Coluna: Orçamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
@@ -102,7 +91,7 @@
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
@@ -111,7 +100,7 @@
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
@@ -120,7 +109,7 @@
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
@@ -129,7 +118,7 @@
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
@@ -137,6 +126,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 400px;">
+                <div class="search-panel">
+                    <div class="flex flex-col sm:flex-row items-stretch gap-1.5">
+                        <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido" class="w-full border border-blue-200 bg-white rounded mx-2-2.5 my-2-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
+                        <div class="search-actions flex items-center mx-2 my-2">
+                            <button onclick="goToFirstFoundCard()" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Localizar</button>
+                            <button onclick="clearSearch()" class="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Limpar</button>
+                        </div>
+                    </div>
+                    <p id="search-status" class="text-blue-100 text-xs mt-1 min-h-4"></p>
+                </div>
+            </div>
+            
     </div>
 
     <!-- Loading Overlay -->
