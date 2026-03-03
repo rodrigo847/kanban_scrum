@@ -22,6 +22,23 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
         }
 
+        .search-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        @media (max-width: 640px) {
+            .search-actions {
+                width: 20%;
+            }
+
+            .search-actions button {
+                flex: 1 1 0;
+            }
+        }
+
         @media (min-width: 768px) {
             .kanban-shell {
                 max-height: 90vh;
@@ -59,60 +76,64 @@
                     ➕ Novo Pedido
                 </button>
             </div>
-            <div class="mt-2 sm:mt-3 max-w-xl mx-auto">
-                <div class="flex items-center gap-2">
-                    <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido por título, descrição ou data" class="w-full border-2 border-blue-300 rounded px-3 py-2 text-sm sm:text-base focus:outline-none focus:border-blue-700">
-                    <button onclick="goToFirstFoundCard()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold transition-colors">Ir para card</button>
-                    <button onclick="clearSearch()" class="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-semibold transition-colors">Limpar</button>
+            <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 400px;">
+                <div class="search-panel">
+                    <div class="flex flex-col sm:flex-row items-stretch gap-1.5">
+                        <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido" class="w-full border border-blue-200 bg-white rounded mx-2-2.5 my-2-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
+                        <div class="search-actions flex items-center gap-1.5">
+                            <button onclick="goToFirstFoundCard()" class="px-2.5 my-2 mx-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">📍 Localizar</button>
+                            <button onclick="clearSearch()" class="px-2.5 py-1.5 mx-0.5 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">✖ Limpar</button>
+                        </div>
+                    </div>
+                    <p id="search-status" class="text-blue-100 text-xs mt-1 min-h-4"></p>
                 </div>
-                <p id="search-status" class="text-blue-100 text-xs sm:text-sm mt-1 min-h-5"></p>
             </div>
         </div>
 
         <!-- Board -->
-        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-hidden">
+        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-y-auto overflow-x-hidden">
             <!-- Coluna: Orçamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
-                <div id="orcamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="orcamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
-                <div id="preimpressao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="preimpressao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
-                <div id="producao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="producao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
-                <div id="acabamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="acabamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[65vh] md:w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
-                <div id="pronto-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="pronto-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
         </div>
