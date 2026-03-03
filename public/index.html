@@ -3,28 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Kanban - Copiadora</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     <link rel="stylesheet" href="output.css">
+    <style>
+        .kanban-board {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .search-focus-card {
+            outline: 3px solid #2563eb;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+        }
+
+        @media (min-width: 768px) {
+            .kanban-shell {
+                max-height: 90vh;
+            }
+
+            .kanban-board {
+                flex-direction: row;
+                align-items: stretch;
+                justify-content: center;
+                overflow-x: auto;
+                padding-bottom: 1rem;
+            }
+
+            .kanban-col {
+                flex: 0 0 280px;
+                max-width: 450px;
+            }
+        }
+    </style>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col overflow-y-auto sm:overflow-hidden">
-    <div class="container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col w-full max-w-full overflow-visible sm:overflow-hidden">
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col overflow-hidden">
+    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col w-full max-w-full overflow-hidden">
         <!-- Header -->
         <div class="text-center mb-4 sm:mb-6 md:mb-8">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 COPIADORA PARANÁ LASER</h1>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-2xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
             <p class="text-blue-100 text-xs sm:text-sm md:text-base">Sistema de fluxo de trabalho</p>
-            <button onclick="openModalForColumn('orcamento')" class="mt-2 sm:mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base">
-                ➕ Novo Pedido
-            </button>
+            <div class="mt-2 sm:mt-3">
+                <div id="firebase-status" class="inline-block px-3 py-1 rounded-full text-xs font-semibold cursor-pointer" onclick="testFirebaseConnection()" title="Clique para testar conexão"></div>
+            </div>
+            <div class="mt-2 sm:mt-3">
+                <button onclick="openModalForColumn('orcamento')" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base">
+                    ➕ Novo Pedido
+                </button>
+            </div>
+            <div class="mt-2 sm:mt-3 max-w-xl mx-auto">
+                <div class="flex items-center gap-2">
+                    <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido por título, descrição ou data" class="w-full border-2 border-blue-300 rounded px-3 py-2 text-sm sm:text-base focus:outline-none focus:border-blue-700">
+                    <button onclick="goToFirstFoundCard()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold transition-colors">Ir para card</button>
+                    <button onclick="clearSearch()" class="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-semibold transition-colors">Limpar</button>
+                </div>
+                <p id="search-status" class="text-blue-100 text-xs sm:text-sm mt-1 min-h-5"></p>
+            </div>
         </div>
 
         <!-- Board -->
-        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-4 items-stretch sm:items-start w-full flex-1 sm:justify-center sm:overflow-x-auto sm:overflow-y-hidden">
+        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-hidden">
             <!-- Coluna: Orçamento -->
-            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
@@ -33,7 +81,7 @@
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
@@ -42,7 +90,7 @@
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
@@ -51,7 +99,7 @@
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
@@ -60,7 +108,7 @@
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="flex-shrink-0 w-full sm:w-60 bg-white rounded-lg shadow-md flex flex-col h-[60vh] sm:h-[65vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
@@ -68,6 +116,19 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 text-center shadow-2xl">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-700 mx-auto mb-4"></div>
+            <p class="text-gray-700 font-semibold">Carregando...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity">
+        <span id="toast-message"></span>
     </div>
 
     <!-- Modal para Adicionar Pedido -->
@@ -82,7 +143,8 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Descrição</label>
-                <input id="inputDescription" type="text" placeholder="Ex: Em processamento" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700">
+                <textarea id="inputDescription" rows="3" placeholder="Ex: Em processamento" class="w-full border-2 border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-700 resize-none"></textarea>
+                <p class="text-xs text-gray-500 mt-1">💡 Dica: Pressione Ctrl+Enter para adicionar rapidamente</p>
             </div>
 
             <div class="mb-4">
@@ -98,53 +160,305 @@
     </div>
 
     <script>
+        // ==================== CONSTANTES E CONFIGURAÇÕES ====================
+        const COLUMNS = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+        const MAX_FIRESTORE_SIZE = 1000000; // 1MB
+        const SAVE_DELAY = 800; // ms
+        const DATE_FORMAT_LOCALE = 'pt-BR';
+        const CODE_VERSION = '2.2.0'; // Versão do código para controle de cache
+        
+        // Verificar versão em cache
+        const cachedVersion = localStorage.getItem('codeVersion');
+        if (cachedVersion !== CODE_VERSION) {
+            console.log(`🔄 Nova versão detectada: ${CODE_VERSION} (anterior: ${cachedVersion})`);
+            localStorage.setItem('codeVersion', CODE_VERSION);
+            if (cachedVersion) {
+                console.warn('⚠️ RECOMENDADO: Pressione Ctrl+Shift+R para atualizar completamente');
+            }
+        }
+        
         // ==================== CONFIGURAÇÃO FIREBASE ====================
-        // Credenciais do projeto Firebase
+        // ⚠️ AVISO DE SEGURANÇA: Em produção, use variáveis de ambiente
+        // e configure regras de segurança adequadas no Firebase Console
         // https://console.firebase.google.com
         const firebaseConfig = {
-            apiKey: "AIzaSyBF7HegVx8bLx18obQdGzEn4ZyN2R6l6ck",
-            authDomain: "kanban-copiadora-laser.firebaseapp.com",
-            projectId: "kanban-copiadora-laser",
-            storageBucket: "kanban-copiadora-laser.firebasestorage.app",
-            messagingSenderId: "119769143692",
-            appId: "1:119769143692:web:4e9c7e3ee21d3c22a45ea9",
-            measurementId: "G-K94WXPN1YE"
+            apiKey: "AIzaSyBFC2Pv7XsAGW1IsXn4kGULYCCkBTjsLNU",
+            authDomain: "kanban-laser-app-d7d3d.firebaseapp.com",
+            projectId: "kanban-laser-app-d7d3d",
+            storageBucket: "kanban-laser-app-d7d3d.firebasestorage.app",
+            messagingSenderId: "470974519584",
+            appId: "1:470974519584:web:d914cfb5e3d462040a1f45",
+            measurementId: "G-8PCKT7XGTF"
         };
 
         // Inicializar Firebase
         let db = null;
         let useFirebase = false;
         
+        // Função para atualizar status visual
+        function updateFirebaseStatus(connected) {
+            const statusEl = document.getElementById('firebase-status');
+            if (statusEl) {
+                if (connected) {
+                    statusEl.className = 'inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white';
+                    statusEl.textContent = '✅ Firebase';
+                } else {
+                    statusEl.className = 'inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white';
+                    statusEl.textContent = '💾 Modo Local';
+                }
+            }
+        }
+        
+        let firebaseReady = false;
+        
         try {
             if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
+                console.log('🔌 Iniciando conexão com Firebase...');
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
-                useFirebase = true;
-                console.log("✅ Firebase conectado - Sincronização ativada!");
+                
+                // Testar conexão
+                db.collection('cards').limit(1).get()
+                    .then(() => {
+                        useFirebase = true;
+                        firebaseReady = true;
+                        console.log("✅ Firebase conectado - Sincronização ativada!");
+                        console.log('📡 Projeto:', firebaseConfig.projectId);
+                        updateFirebaseStatus(true);
+                        // Carregar dados após Firebase estar pronto
+                        loadData();
+                    })
+                    .catch((error) => {
+                        console.error("❌ Firebase inacessível:", error.message);
+                        console.error('Código do erro:', error.code);
+                        console.warn("⚠️ Usando localStorage como fallback");
+                        firebaseReady = true;
+                        updateFirebaseStatus(false);
+                        // Carregar dados do localStorage
+                        loadData();
+                    });
             } else {
                 console.warn("⚠️ Firebase não configurado - Usando localStorage");
+                firebaseReady = true;
+                updateFirebaseStatus(false);
+                loadData();
             }
         } catch (error) {
             console.error("❌ Erro ao conectar Firebase:", error);
+            console.error('Detalhes:', error.message);
             console.warn("⚠️ Usando localStorage como fallback");
+            firebaseReady = true;
+            updateFirebaseStatus(false);
+            loadData();
         }
+        
+        // Timeout de segurança - se não conseguir conectar em 5 seg, usar localStorage
+        setTimeout(() => {
+            if (!firebaseReady) {
+                console.warn('⏱️ Timeout na conexão Firebase - usando localStorage');
+                firebaseReady = true;
+                loadData();
+            }
+        }, 5000);
         // ===============================================================
 
         let currentColumn = null;
         let cardCounter = {};
         let selectedDate = null;
         let isSavingLocally = false; // Flag para evitar race condition com listener
+        let focusedSearchCard = null;
+
+        // ==================== UI HELPERS ====================
+        // Escapar HTML para prevenir XSS e preservar texto
+        function escapeHTML(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Normalizar texto para busca (ignorar acentos e caixa)
+        function normalizeSearchText(text) {
+            return (text || '')
+                .toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+        }
+
+        // Limpar busca
+        function clearSearch() {
+            const searchInput = document.getElementById('searchOrders');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            applySearchFilter();
+        }
+
+        // Limpar destaque de busca anterior
+        function clearSearchFocus() {
+            if (focusedSearchCard) {
+                focusedSearchCard.classList.remove('search-focus-card');
+                focusedSearchCard = null;
+            }
+        }
+
+        // Aplicar filtro de busca nos cards
+        function applySearchFilter() {
+            const searchInput = document.getElementById('searchOrders');
+            const statusEl = document.getElementById('search-status');
+
+            if (!searchInput) return;
+
+            clearSearchFocus();
+
+            const term = normalizeSearchText(searchInput.value.trim());
+            let totalCards = 0;
+            let visibleCards = 0;
+            let firstMatchCard = null;
+
+            COLUMNS.forEach(column => {
+                const container = document.getElementById(`${column}-content`);
+                if (!container) return;
+
+                const cards = container.querySelectorAll('.bg-white.border-2');
+                cards.forEach(card => {
+                    totalCards++;
+
+                    const title = card.querySelector('.font-semibold')?.textContent || '';
+                    const description = card.querySelector('.text-gray-500')?.textContent || '';
+                    const date = card.getAttribute('data-date') || '';
+                    const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
+                    const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : '';
+
+                    const searchableContent = normalizeSearchText(`${title} ${description} ${date} ${returnReason}`);
+                    const matches = !term || searchableContent.includes(term);
+
+                    card.classList.toggle('hidden', !matches);
+                    if (matches) {
+                        visibleCards++;
+                        if (!firstMatchCard && term) {
+                            firstMatchCard = card;
+                        }
+                    }
+                });
+            });
+
+            if (!statusEl) return;
+
+            if (!term) {
+                statusEl.textContent = '';
+                return { term, totalCards, visibleCards, firstMatchCard };
+            }
+
+            statusEl.textContent = `${visibleCards} de ${totalCards} pedido(s) encontrado(s)`;
+            return { term, totalCards, visibleCards, firstMatchCard };
+        }
+
+        // Ir direto para o primeiro card encontrado na busca
+        function goToFirstFoundCard() {
+            const result = applySearchFilter();
+
+            if (!result || !result.term) {
+                showToast('Digite algo na busca para localizar um pedido', 'info');
+                return;
+            }
+
+            if (!result.firstMatchCard) {
+                showToast('Nenhum pedido encontrado com esse termo', 'warning');
+                return;
+            }
+
+            focusedSearchCard = result.firstMatchCard;
+            focusedSearchCard.classList.add('search-focus-card');
+            focusedSearchCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            showToast('Pedido localizado', 'success');
+        }
+
+        // Mostrar loading
+        function showLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+
+        // Esconder loading
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        // Mostrar notificação toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            if (!toast || !toastMessage) return;
+            
+            // Definir cor baseada no tipo
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-yellow-600',
+                info: 'bg-blue-600'
+            };
+            
+            // Remover classes antigas e adicionar nova
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity ${colors[type] || colors.success}`;
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+            
+            // Esconder após 3 segundos
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Testar conexão com Firebase
+        function testFirebaseConnection() {
+            console.log('\n🔍 ========== TESTE DE CONEXÃO ==========');
+            console.log('Estado atual:');
+            console.log('  - useFirebase:', useFirebase);
+            console.log('  - db existe:', !!db);
+            console.log('  - Firebase carregado:', typeof firebase !== 'undefined');
+            
+            if (!useFirebase) {
+                showToast('Sistema está em modo local (localStorage)', 'info');
+                console.log('⚠️ Firebase não está ativo');
+                return;
+            }
+            
+            showLoading();
+            showToast('Testando conexão com Firebase...', 'info');
+            
+            db.collection('cards').limit(1).get()
+                .then((snapshot) => {
+                    hideLoading();
+                    console.log('✅ CONEXÃO OK!');
+                    console.log('  - Documentos no Firestore:', snapshot.size);
+                    showToast(`✅ Firebase OK! ${snapshot.size} documento(s) encontrado(s)`, 'success');
+                })
+                .catch((error) => {
+                    hideLoading();
+                    console.error('❌ ERRO NA CONEXÃO:', error);
+                    console.error('  - Código:', error.code);
+                    console.error('  - Mensagem:', error.message);
+                    showToast('❌ Erro ao conectar com Firebase', 'error');
+                });
+        }
 
         // Inicializar contadores
         function initCounters() {
-            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
-            columns.forEach(col => {
+            COLUMNS.forEach(col => {
                 cardCounter[col] = 0;
             });
         }
 
+        // ==================== DATA LOADING ====================
         // Carregar dados do Firebase ou localStorage
         function loadData() {
+            showLoading();
+            
             if (useFirebase) {
                 // Carregar do Firestore
                 loadFromFirestore();
@@ -152,11 +466,16 @@
                 // Carregar do localStorage
                 const data = localStorage.getItem('kanbanData');
                 if (data) {
-                    const cards = JSON.parse(data);
-                    renderCards(cards);
-                } else {
-                    // Kanban inicia vazio - sem dados de demonstração
+                    try {
+                        const cards = JSON.parse(data);
+                        renderCards(cards);
+                        showToast('Dados carregados do cache local', 'info');
+                    } catch (error) {
+                        console.error('Erro ao parsear localStorage:', error);
+                        showToast('Erro ao carregar dados locais', 'error');
+                    }
                 }
+                hideLoading();
             }
         }
 
@@ -177,41 +496,71 @@
                     if (cards.length > 0) {
                         console.log(`✅ Renderizando ${cards.length} cartão(ões)`);
                         renderCards(cards);
+                        showToast(`${cards.length} pedido(s) carregado(s)`, 'success');
                     } else {
                         console.log('🌀 Nenhum cartão no Firestore - Kanban vazio');
+                        showToast('Kanban vazio - Adicione um novo pedido', 'info');
                     }
-                    // Kanban inicia vazio se nenhum cartão no Firestore
-
+                    
+                    hideLoading();
+                    
                     // Listener em tempo real para sincronização
                     setupRealtimeListener();
                 })
                 .catch((error) => {
                     console.error("❌ ERRO ao carregar Firestore:", error);
                     console.error("Detalhes do erro:", error.message);
+                    hideLoading();
+                    showToast('Erro ao conectar ao Firebase - Usando cache local', 'warning');
+                    
                     // Fallback para localStorage
                     const data = localStorage.getItem('kanbanData');
                     if (data) {
                         console.log('⚠️ Usando localStorage como fallback');
-                        renderCards(JSON.parse(data));
-                    } else {
-                        loadDemoData();
+                        try {
+                            renderCards(JSON.parse(data));
+                        } catch (parseError) {
+                            console.error('Erro ao parsear dados do cache:', parseError);
+                            showToast('Erro ao carregar cache local', 'error');
+                        }
                     }
                 });
         }
 
         // Configurar listener em tempo real
         function setupRealtimeListener() {
-            db.collection('cards').onSnapshot((snapshot) => {
-                // Ignorar mudanças enquanto está salvando localmente
-                if (isSavingLocally) return;
-                
-                // Recarregar sempre que houver qualquer mudança no snapshot
-                const changes = snapshot.docChanges();
-                if (changes.length > 0) {
-                    console.log(`🔄 Sincronização: ${changes.length} mudança(s) detectada(s)`);
-                    reloadFromFirestore();
+            console.log('📡 Configurando listener em tempo real...');
+            
+            db.collection('cards').onSnapshot(
+                (snapshot) => {
+                    // Ignorar mudanças enquanto está salvando localmente
+                    if (isSavingLocally) {
+                        console.log('⏸️ Sincronização pausada (salvando localmente)');
+                        return;
+                    }
+                    
+                    // Recarregar sempre que houver qualquer mudança no snapshot
+                    const changes = snapshot.docChanges();
+                    if (changes.length > 0) {
+                        console.log(`🔄 Sincronização: ${changes.length} mudança(s) detectada(s)`);
+                        changes.forEach(change => {
+                            console.log(`  → ${change.type}: ${change.doc.data().title}`);
+                        });
+                        reloadFromFirestore();
+                    } else {
+                        console.log('✨ Listener ativo (aguardando mudanças...)');
+                    }
+                },
+                (error) => {
+                    console.error('❌ Erro no listener em tempo real:', error.message);
+                    console.error('Código do erro:', error.code);
+                    // Tentar reconectar em 5 segundos
+                    setTimeout(() => {
+                        console.log('🔄 Tentando reconectar listener...');
+                        setupRealtimeListener();
+                    }, 5000);
                 }
-            });
+            );
         }
 
         // Recarregar dados do Firestore (para sincronização em tempo real)
@@ -224,33 +573,48 @@
                     });
                     
                     // Limpar todas as colunas
-                    const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
-                    columns.forEach(col => {
+                    COLUMNS.forEach(col => {
                         const container = document.getElementById(`${col}-content`);
                         if (container) container.innerHTML = '';
                     });
                     
                     renderCards(cards);
+                    showToast('Dados sincronizados', 'info');
                 })
                 .catch((error) => {
                     console.error("Erro ao recarregar:", error);
+                    showToast('Erro na sincronização', 'error');
                 });
         }
 
         // Renderizar cards na tela
         function renderCards(cards) {
+            if (!Array.isArray(cards)) {
+                console.error('renderCards: esperava array, recebeu:', typeof cards);
+                return;
+            }
+            
             cards.forEach(card => {
+                if (!card.column || !COLUMNS.includes(card.column)) {
+                    console.warn('Card com coluna inválida:', card);
+                    return;
+                }
+                
                 const container = document.getElementById(`${card.column}-content`);
                 if (container) {
-                    container.innerHTML += createCardHTML(
-                        card.title, 
-                        card.description, 
+                    const cardHTML = createCardHTML(
+                        card.title || 'Sem título', 
+                        card.description || 'Sem descrição', 
                         card.pdfBase64 || null, 
                         card.pdfName || null,
-                        card.date || null
+                        card.date || null,
+                        card.returnReason || null
                     );
+                    container.insertAdjacentHTML('beforeend', cardHTML);
                 }
             });
+
+            applySearchFilter();
         }
 
         // Dados iniciais de demonstração - DESATIVADO
@@ -291,21 +655,58 @@
         }
 
         // Criar HTML do card
-        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null) {
+        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null, returnReason = null) {
+            // Escapar HTML para segurança
+            const safeTitle = escapeHTML(title);
+            const safeDescription = escapeHTML(description);
+            const safeReturnReason = returnReason ? escapeHTML(returnReason) : null;
+            
             let pdfButton = '';
             if (pdfBase64) {
-                pdfButton = `<button onclick="downloadPDF('${pdfBase64}', '${pdfName}')" class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xs py-1 rounded transition-colors mt-2">📄 Baixar PDF</button>`;
+                const safePdfName = escapeHTML(pdfName || 'documento.pdf');
+                pdfButton = `<button onclick="downloadPDF('${pdfBase64}', '${safePdfName}')" class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xs py-1 rounded transition-colors mt-2">📄 Baixar PDF</button>`;
             }
+            const returnReasonEncoded = returnReason ? encodeURIComponent(returnReason) : '';
+            let returnReasonDisplay = '';
+            if (safeReturnReason) {
+                returnReasonDisplay = `<div class="text-xs text-red-600 mt-2 break-words whitespace-pre-wrap">Motivo do retorno: ${safeReturnReason}</div>`;
+            }
+            let highlightClass = 'border-blue-700';
+            let dateTextClass = 'text-blue-600';
+            let stripBgClass = 'bg-blue-100';
             let dateDisplay = '';
             if (date) {
                 // Formatar data sem usar new Date para evitar problemas de timezone
                 const parts = date.split('-');
                 const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                dateDisplay = `<div class="text-blue-600 text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const targetDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                targetDate.setHours(0, 0, 0, 0);
+                const diffDays = Math.round((targetDate - today) / 86400000);
+
+                if (diffDays <= 1) {
+                    highlightClass = 'border-red-600';
+                    dateTextClass = 'text-red-600';
+                    stripBgClass = 'bg-red-200';
+                } else if (diffDays === 2) {
+                    highlightClass = 'border-orange-500';
+                    dateTextClass = 'text-orange-600';
+                    stripBgClass = 'bg-orange-200';
+                } else if (diffDays > 2) {
+                    highlightClass = 'border-green-600';
+                    dateTextClass = 'text-green-600';
+                    stripBgClass = 'bg-green-200';
+                }
+
+                dateDisplay = `<div class="${dateTextClass} text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
             }
-            return `<div class="bg-white border-2 border-blue-700 rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}">
-                <div class="font-semibold text-blue-700">${title}</div>
-                <div class="text-gray-500 text-sm mt-2">${description}</div>
+            return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}">
+                <div class="${stripBgClass} h-2 rounded-t -mt-3 -mx-3 mb-2"></div>
+                <div class="font-semibold text-blue-700 break-words">${safeTitle}</div>
+                <div class="text-gray-500 text-sm mt-2 break-words whitespace-pre-line">${safeDescription}</div>
+                ${returnReasonDisplay}
                 ${dateDisplay}
                 ${pdfButton}
                 <div class="flex gap-2 mt-3 justify-center">
@@ -340,24 +741,54 @@
 
         // Adicionar card
         function addCard() {
-            const title = document.getElementById('inputTitle').value.trim();
-            const description = document.getElementById('inputDescription').value.trim();
+            const titleInput = document.getElementById('inputTitle');
+            const descriptionInput = document.getElementById('inputDescription');
+            
+            const title = titleInput?.value.trim();
+            // NÃO fazer trim na descrição para preservar quebras de linha
+            const description = descriptionInput?.value || '';
 
+            // Validações
             if (!title) {
-                alert('Por favor, digite um título para o pedido!');
+                showToast('Por favor, digite um título para o pedido!', 'warning');
+                titleInput?.focus();
+                return;
+            }
+
+            if (title.length < 3) {
+                showToast('O título deve ter pelo menos 3 caracteres', 'warning');
                 return;
             }
 
             if (!currentColumn) {
-                alert('Selecione uma coluna!');
+                showToast('Erro: Coluna não selecionada', 'error');
                 return;
             }
 
             const container = document.getElementById(`${currentColumn}-content`);
             if (container) {
-                container.innerHTML += createCardHTML(title, description, null, null, selectedDate);
-                saveData();
+                const cardHTML = createCardHTML(
+                    title, 
+                    description.trim() || 'Sem descrição', 
+                    null, 
+                    null, 
+                    selectedDate, 
+                    null
+                );
+                container.insertAdjacentHTML('beforeend', cardHTML);
+                
+                // Fechar modal ANTES de salvar
                 closeModal();
+
+                // Reaplicar busca, se houver termo ativo
+                applySearchFilter();
+                
+                // Salvar dados
+                saveData();
+                
+                showToast('Pedido adicionado com sucesso!', 'success');
+            } else {
+                showToast('Erro ao adicionar pedido', 'error');
             }
         }
 
@@ -366,13 +797,14 @@
             selectedDate = event.target.value;
         }
 
+        // ==================== DATA SAVING ====================
         // Salvar dados no Firebase ou localStorage
         function saveData() {
-            console.log('💾 Iniciando salvamento...');
-            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
+            console.log('\n💾 ========== SALVAMENTO INICIADO ==========');
+            console.log('Modo:', useFirebase ? 'Firebase' : 'localStorage');
             const cards = [];
 
-            columns.forEach(column => {
+            COLUMNS.forEach(column => {
                 const container = document.getElementById(`${column}-content`);
                 if (container) {
                     const cardElements = container.querySelectorAll('.border-2');
@@ -383,6 +815,8 @@
                         const pdfBase64 = card.getAttribute('data-pdf') || null;
                         const pdfName = card.getAttribute('data-pdf-name') || null;
                         const date = card.getAttribute('data-date') || null;
+                        const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
+                        const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : null;
                         
                         cards.push({
                             column: column,
@@ -391,6 +825,7 @@
                             pdfBase64: pdfBase64,
                             pdfName: pdfName,
                             date: date,
+                            returnReason: returnReason,
                             createdAt: Date.now()
                         });
                     });
@@ -398,6 +833,10 @@
             });
 
             console.log(`📊 Total de cartões coletados: ${cards.length}`);
+            console.log('Detalhes dos cartões:');
+            cards.forEach((card, idx) => {
+                console.log(`  ${idx + 1}. ${card.title} (${card.column})`);
+            });
 
             if (useFirebase) {
                 console.log('🎯 Salvando no Firestore...');
@@ -435,6 +874,7 @@
             // Se houver cartão muito grande, ABORTAR sem deletar nada
             if (hasOversizedCard) {
                 isSavingLocally = false;
+                showToast('Erro: Cartão excede limite de 1MB', 'error');
                 alert(`❌ IMPOSSÍVEL SALVAR!\n\nOs seguintes cartões excedem o limite de 1MB do Firebase:${errorMessage}\n\n⚠️ Erro inesperado - entre em contato com suporte.`);
                 console.error('🚫 Salvamento abortado! Cartão(ões) muito grande(s). Dados anteriores preservados.');
                 return; // ABORTAR AQUI - NÃO DELETA NADA
@@ -469,8 +909,10 @@
                 console.log(`✔️ Verificação: ${verifySnapshot.size} documento(s) agora no Firestore`);
                 if (verifySnapshot.size === cards.length) {
                     console.log('✅ SUCESSO COMPLETO! Todos os cartões foram salvos!');
+                    showToast('Dados salvos com sucesso!', 'success');
                 } else {
                     console.warn(`⚠️ AVISO: Esperava ${cards.length} cartões, mas encontrou ${verifySnapshot.size}`);
+                    showToast('Aviso: Alguns dados podem não ter sido salvos', 'warning');
                 }
                 
                 // Também salvar no localStorage como backup
@@ -487,8 +929,10 @@
                 console.error('Mensagem:', error.message);
                 if (error.code === 'permission-denied') {
                     console.error('🚫 PERMISSÃO NEGADA! Verifique as regras do Firestore!');
+                    showToast('Erro de permissão do Firebase', 'error');
                     alert('⚠️ ERRO DE PERMISSÃO!\n\nO Firebase está bloqueando o salvamento.\nVerifique as regras de segurança no Firebase Console.');
                 } else {
+                    showToast('Erro ao salvar - usando cache local', 'error');
                     alert('⚠️ Erro ao salvar no Firebase!\n\nVerifique o console (F12) para mais detalhes.\nPossível causa: PDF muito grande ou problemas de conexão.');
                 }
                 // Fallback para localStorage
@@ -497,67 +941,99 @@
             });
         }
 
+        // ==================== CARD ACTIONS ====================
         // Mover card para coluna anterior
         function moveCardBack(button) {
-            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
             const card = button.closest('.bg-white');
+            if (!card) {
+                showToast('Erro ao localizar cartão', 'error');
+                return;
+            }
+            
             const currentContainer = card.parentElement;
             const currentColumn = currentContainer.id.replace('-content', '');
-            const currentIndex = columns.indexOf(currentColumn);
+            const currentIndex = COLUMNS.indexOf(currentColumn);
 
             if (currentIndex > 0) {
-                const previousColumn = columns[currentIndex - 1];
+                const returnReasonInput = prompt('Informe o motivo do retorno:');
+                if (!returnReasonInput || !returnReasonInput.trim()) {
+                    showToast('Motivo do retorno é obrigatório', 'warning');
+                    return;
+                }
+                const previousColumn = COLUMNS[currentIndex - 1];
                 const previousContainer = document.getElementById(`${previousColumn}-content`);
                 const title = card.querySelector('.font-semibold').textContent;
                 const description = card.querySelector('.text-gray-500').textContent;
                 const pdfBase64 = card.getAttribute('data-pdf');
                 const pdfName = card.getAttribute('data-pdf-name');
                 const date = card.getAttribute('data-date') || null;
+                const returnReason = returnReasonInput.trim();
                 
-                previousContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                const cardHTML = createCardHTML(title, description, pdfBase64 || null, pdfName || null, date, returnReason);
+                previousContainer.insertAdjacentHTML('beforeend', cardHTML);
                 card.remove();
+                applySearchFilter();
                 saveData();
+                showToast('Pedido retornado para ' + previousColumn, 'info');
             } else {
-                alert('⚠️ Este pedido já está na primeira coluna!');
+                showToast('Este pedido já está na primeira coluna!', 'warning');
             }
         }
 
         // Mover card para próxima coluna
         function moveCard(button) {
-            const columns = ['orcamento', 'preimpressao', 'producao', 'acabamento', 'pronto'];
             const card = button.closest('.bg-white');
+            if (!card) {
+                showToast('Erro ao localizar cartão', 'error');
+                return;
+            }
+            
             const currentContainer = card.parentElement;
             const currentColumn = currentContainer.id.replace('-content', '');
-            const currentIndex = columns.indexOf(currentColumn);
+            const currentIndex = COLUMNS.indexOf(currentColumn);
 
-            if (currentIndex < columns.length - 1) {
-                const nextColumn = columns[currentIndex + 1];
+            if (currentIndex < COLUMNS.length - 1) {
+                const nextColumn = COLUMNS[currentIndex + 1];
                 const nextContainer = document.getElementById(`${nextColumn}-content`);
                 const title = card.querySelector('.font-semibold').textContent;
                 const description = card.querySelector('.text-gray-500').textContent;
                 const pdfBase64 = card.getAttribute('data-pdf');
                 const pdfName = card.getAttribute('data-pdf-name');
                 const date = card.getAttribute('data-date') || null;
+                const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
+                const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : null;
                 
-                nextContainer.innerHTML += createCardHTML(title, description, pdfBase64 || null, pdfName || null, date);
+                const cardHTML = createCardHTML(title, description, pdfBase64 || null, pdfName || null, date, returnReason);
+                nextContainer.insertAdjacentHTML('beforeend', cardHTML);
                 card.remove();
+                applySearchFilter();
                 saveData();
+                showToast('Pedido movido para ' + nextColumn, 'success');
             } else {
-                alert('⚠️ Este pedido já está na última coluna!');
+                showToast('Este pedido já está na última coluna!', 'info');
             }
         }
 
         // Excluir card
         function deleteCard(button) {
-            if (confirm('Tem certeza que deseja excluir este pedido?')) {
+            if (confirm('Tem certeza que deseja excluir este pedido?\n\nEsta ação não pode ser desfeita.')) {
                 const card = button.closest('.bg-white');
-                card.remove();
-                saveData();
+                if (card) {
+                    const title = card.querySelector('.font-semibold')?.textContent || 'Pedido';
+                    card.remove();
+                    applySearchFilter();
+                    saveData();
+                    showToast(`"${title}" excluído`, 'success');
+                } else {
+                    showToast('Erro ao excluir pedido', 'error');
+                }
             }
         }
 
-        // Permitir Enter para adicionar
+        // ==================== INITIALIZATION ====================
+        // Inicialização do sistema
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando sistema Kanban...');
             // Adicionar listeners com verificação de null
             const inputTitle = document.getElementById('inputTitle');
             const inputDescription = document.getElementById('inputDescription');
@@ -572,12 +1048,27 @@
 
             if (inputDescription) {
                 inputDescription.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') addCard();
+                    // Ctrl+Enter adiciona o card, Enter normal quebra linha
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        e.preventDefault();
+                        addCard();
+                    }
                 });
             }
 
             if (inputDate) {
                 inputDate.addEventListener('change', handleDateChange);
+            }
+
+            const searchOrders = document.getElementById('searchOrders');
+            if (searchOrders) {
+                searchOrders.addEventListener('input', applySearchFilter);
+                searchOrders.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        goToFirstFoundCard();
+                    }
+                });
             }
 
             if (modal) {
@@ -587,7 +1078,22 @@
             }
 
             initCounters();
-            loadData();
+            
+            // Aguardar que Firebase seja iniciado (loadData será chamado em firebase-init.js)
+            console.log('✅ Sistema inicializado! Aguardando Firebase...');
+            
+            // Fallback caso Firebase não se conecte
+            if (typeof firebaseReady === 'undefined') {
+                loadData();
+            }
+        });
+        
+        // Prevenir perda de dados ao fechar
+        window.addEventListener('beforeunload', function(e) {
+            if (useFirebase && isSavingLocally) {
+                e.preventDefault();
+                e.returnValue = 'Dados ainda estão sendo salvos...';
+            }
         });
     </script>
 </body>
