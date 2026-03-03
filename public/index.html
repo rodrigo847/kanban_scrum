@@ -29,9 +29,21 @@
             padding: 0.5rem;
         }
 
+        @media (max-width: 767px) {
+            #searchOrders {
+                padding: 0.5rem !important;
+                font-size: 0.95rem !important;
+            }
+
+            .search-actions button {
+                padding: 0.5rem 1rem !important;
+                font-size: 0.9rem !important;
+            }
+        }
+
         @media (max-width: 640px) {
             .search-actions {
-                width: 20%;
+                width: 100%;
             }
 
             .search-actions button {
@@ -42,6 +54,11 @@
         @media (min-width: 768px) {
             .kanban-shell {
                 max-height: 90vh;
+                overflow: hidden;
+            }
+
+            body {
+                overflow: hidden;
             }
 
             .kanban-board {
@@ -57,13 +74,23 @@
                 max-width: 450px;
             }
         }
+
+        @media (max-width: 767px) {
+            .kanban-shell {
+                overflow-y: auto;
+            }
+
+            body {
+                overflow-y: auto;
+            }
+        }
     </style>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col overflow-hidden">
-    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col w-full max-w-full overflow-hidden">
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col">
+    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col max-w-full">
         <!-- Header -->
         <div class="text-center mb-4 sm:mb-6 md:mb-8">
             <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-2xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
@@ -80,9 +107,9 @@
         </div>
 
         <!-- Board -->
-        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-y-auto">
+        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full h-full flex-1 overflow-y-auto">
             <!-- Coluna: Orçamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[80vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
@@ -91,7 +118,7 @@
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[80vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
@@ -100,7 +127,7 @@
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[80vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
@@ -109,7 +136,7 @@
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[80vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
@@ -118,7 +145,7 @@
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[70vh] md:w-[70vh] md:h-[80vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[80vh] md:w-[70vh] md:h-[80vh]">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
@@ -130,7 +157,7 @@
         <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 400px;">
                 <div class="search-panel">
                     <div class="flex flex-col sm:flex-row items-stretch gap-1.5">
-                        <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido" class="w-full border border-blue-200 bg-white rounded mx-2-2.5 my-2-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
+                        <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido" class="w-full border border-blue-200 bg-white rounded px-2.5 py-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
                         <div class="search-actions flex items-center mx-2 my-2">
                             <button onclick="goToFirstFoundCard()" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Localizar</button>
                             <button onclick="clearSearch()" class="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Limpar</button>
