@@ -22,9 +22,31 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
         }
 
+        .search-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        #searchOrders {
+            padding: 0.5rem !important;
+            font-size: 0.95rem !important;
+        }
+
+        .search-actions button {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.9rem !important;
+        }
+
         @media (min-width: 768px) {
             .kanban-shell {
-                max-height: 90vh;
+                max-height: 100vh;
+                overflow: hidden;
+            }
+
+            body {
+                overflow: hidden;
             }
 
             .kanban-board {
@@ -40,86 +62,110 @@
                 max-width: 450px;
             }
         }
+
+        @media (max-width: 767px) {
+            .kanban-shell {
+                overflow-y: auto;
+            }
+
+            body {
+                overflow-y: auto;
+            }
+        }
     </style>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col overflow-hidden">
-    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col w-full max-w-full overflow-hidden">
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col">
+    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col max-w-full">
         <!-- Header -->
-        <div class="text-center mb-4 sm:mb-6 md:mb-8">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-2xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
-            <p class="text-blue-100 text-xs sm:text-sm md:text-base">Sistema de fluxo de trabalho</p>
-            <div class="mt-2 sm:mt-3">
-                <div id="firebase-status" class="inline-block px-3 py-1 rounded-full text-xs font-semibold cursor-pointer" onclick="testFirebaseConnection()" title="Clique para testar conexão"></div>
-            </div>
-            <div class="mt-2 sm:mt-3">
-                <button onclick="openModalForColumn('orcamento')" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base">
-                    ➕ Novo Pedido
-                </button>
-            </div>
-            <div class="mt-2 sm:mt-3 max-w-xl mx-auto">
-                <div class="flex items-center gap-2">
-                    <input id="searchOrders" type="text" placeholder="🔎 Buscar pedido por título, descrição ou data" class="w-full border-2 border-blue-300 rounded px-3 py-2 text-sm sm:text-base focus:outline-none focus:border-blue-700">
-                    <button onclick="goToFirstFoundCard()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold transition-colors">Ir para card</button>
-                    <button onclick="clearSearch()" class="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-semibold transition-colors">Limpar</button>
+        <div class="text-center mb-4 sm:mb-6 md:mb-8 flex flex-col items-center">
+            
+            <div>
+                <div class="mb-2 sm:mt-3">
+                    <div id="firebase-status" class="inline-block px-3 py-1 rounded-full text-xs font-semibold cursor-pointer" onclick="testFirebaseConnection()" title="Clique para testar conexão"></div>
                 </div>
-                <p id="search-status" class="text-blue-100 text-xs sm:text-sm mt-1 min-h-5"></p>
+                    
+                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-3xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
+                <p class="text-blue-100 text-xs sm:text-sm md:text-base">Sistema de fluxo de trabalho</p>
+
+                <div class="mt-4 sm:mt-3">
+                     <button onclick="openModalForColumn('orcamento')" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base cursor-pointer">
+                    ➕ Novo Pedido
+                    </button> 
+                </div>
+            
             </div>
+            
         </div>
 
         <!-- Board -->
-        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full flex-1 overflow-hidden">
+        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full h-full flex-1 overflow-y-auto">
             <!-- Coluna: Orçamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
-                <div id="orcamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="orcamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
-                <div id="preimpressao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="preimpressao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
-                <div id="producao-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="producao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
-                <div id="acabamento-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="acabamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-[60vh] md:h-[70vh]">
+            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
-                <div id="pronto-content" class="column-content flex-1 overflow-y-auto p-3 sm:p-4">
+                <div id="pronto-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                 </div>
             </div>
         </div>
+
+        <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 500px;">
+                <div class="search-panel">
+                    <div class="flex flex-col items-stretch gap-1.5">
+                        <input id="searchOrders" type="text" placeholder="🔎 Localizar pedido" class="w-full border border-blue-200 bg-white rounded px-2.5 py-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
+                        <!-- Botões desativados - Para reativar, remova este comentário -->
+                        <!-- <div class="search-actions flex flex-row items-center justify-center gap-2.5 mx-2 my-2">
+                            <button onclick="goToFirstFoundCard()" class="p-2 mt-1 mr-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Localizar</button>
+                            <button onclick="clearSearch()" class="p-2 mt-1 ml-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs font-semibold transition-colors whitespace-nowrap">Limpar</button>
+                        </div> -->
+                    </div>
+                    <p id="search-status" class="text-blue-100 text-xs mt-1 min-h-4"></p>
+                </div>
+            </div>
+            
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-30 items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 text-center shadow-2xl">
             <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-700 mx-auto mb-4"></div>
             <p class="text-gray-700 font-semibold">Carregando...</p>
@@ -132,7 +178,7 @@
     </div>
 
     <!-- Modal para Adicionar Pedido -->
-    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div id="modal" class="hidden fixed inset-0 bg-blue-500 bg-opacity-90 items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-[90%] sm:w-96 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-2xl font-bold text-blue-700 mb-4">Novo Pedido</h2>
             
@@ -165,7 +211,7 @@
         const MAX_FIRESTORE_SIZE = 1000000; // 1MB
         const SAVE_DELAY = 800; // ms
         const DATE_FORMAT_LOCALE = 'pt-BR';
-        const CODE_VERSION = '2.2.0'; // Versão do código para controle de cache
+        const CODE_VERSION = '2.4.0'; // Versão do código para controle de cache
         
         // Verificar versão em cache
         const cachedVersion = localStorage.getItem('codeVersion');
@@ -277,6 +323,18 @@
             return div.innerHTML;
         }
 
+        function getCardTitleText(card) {
+            return card.querySelector('.card-title')?.textContent
+                || card.querySelector('.font-semibold')?.textContent
+                || '';
+        }
+
+        function getCardDescriptionText(card) {
+            return card.querySelector('.card-description')?.textContent
+                || card.querySelector('.text-gray-500')?.textContent
+                || '';
+        }
+
         // Normalizar texto para busca (ignorar acentos e caixa)
         function normalizeSearchText(text) {
             return (text || '')
@@ -326,12 +384,11 @@
                 cards.forEach(card => {
                     totalCards++;
 
-                    const title = card.querySelector('.font-semibold')?.textContent || '';
-                    const description = card.querySelector('.text-gray-500')?.textContent || '';
+                    const title = getCardTitleText(card);
+                    const description = getCardDescriptionText(card);
                     const date = card.getAttribute('data-date') || '';
                     const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
                     const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : '';
-
                     const searchableContent = normalizeSearchText(`${title} ${description} ${date} ${returnReason}`);
                     const matches = !term || searchableContent.includes(term);
 
@@ -379,13 +436,19 @@
         // Mostrar loading
         function showLoading() {
             const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.classList.remove('hidden');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
         }
 
         // Esconder loading
         function hideLoading() {
             const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.classList.add('hidden');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
         }
 
         // Mostrar notificação toast
@@ -671,6 +734,7 @@
             if (safeReturnReason) {
                 returnReasonDisplay = `<div class="text-xs text-red-600 mt-2 break-words whitespace-pre-wrap">Motivo do retorno: ${safeReturnReason}</div>`;
             }
+
             let highlightClass = 'border-blue-700';
             let dateTextClass = 'text-blue-600';
             let stripBgClass = 'bg-blue-100';
@@ -704,8 +768,8 @@
             }
             return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}">
                 <div class="${stripBgClass} h-2 rounded-t -mt-3 -mx-3 mb-2"></div>
-                <div class="font-semibold text-blue-700 break-words">${safeTitle}</div>
-                <div class="text-gray-500 text-sm mt-2 break-words whitespace-pre-line">${safeDescription}</div>
+                <div class="card-title font-semibold text-blue-700 break-words">${safeTitle}</div>
+                <div class="card-description text-gray-500 text-sm mt-2 break-words whitespace-pre-line">${safeDescription}</div>
                 ${returnReasonDisplay}
                 ${dateDisplay}
                 ${pdfButton}
@@ -725,13 +789,21 @@
 
         // Abrir modal
         function openModal() {
-            document.getElementById('modal').classList.remove('hidden');
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
             document.getElementById('inputTitle').focus();
         }
 
         // Fechar modal
         function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
             document.getElementById('inputTitle').value = '';
             document.getElementById('inputDescription').value = '';
             document.getElementById('inputDate').value = '';
@@ -810,8 +882,8 @@
                     const cardElements = container.querySelectorAll('.border-2');
                     console.log(`  - Coluna "${column}": ${cardElements.length} cartão(ões)`);
                     cardElements.forEach(card => {
-                        const titleEl = card.querySelector('.font-semibold');
-                        const descEl = card.querySelector('.text-gray-500');
+                        const title = getCardTitleText(card);
+                        const description = getCardDescriptionText(card);
                         const pdfBase64 = card.getAttribute('data-pdf') || null;
                         const pdfName = card.getAttribute('data-pdf-name') || null;
                         const date = card.getAttribute('data-date') || null;
@@ -820,8 +892,8 @@
                         
                         cards.push({
                             column: column,
-                            title: titleEl?.textContent || '',
-                            description: descEl?.textContent || '',
+                            title: title,
+                            description: description,
                             pdfBase64: pdfBase64,
                             pdfName: pdfName,
                             date: date,
@@ -962,8 +1034,8 @@
                 }
                 const previousColumn = COLUMNS[currentIndex - 1];
                 const previousContainer = document.getElementById(`${previousColumn}-content`);
-                const title = card.querySelector('.font-semibold').textContent;
-                const description = card.querySelector('.text-gray-500').textContent;
+                const title = getCardTitleText(card);
+                const description = getCardDescriptionText(card);
                 const pdfBase64 = card.getAttribute('data-pdf');
                 const pdfName = card.getAttribute('data-pdf-name');
                 const date = card.getAttribute('data-date') || null;
@@ -995,14 +1067,14 @@
             if (currentIndex < COLUMNS.length - 1) {
                 const nextColumn = COLUMNS[currentIndex + 1];
                 const nextContainer = document.getElementById(`${nextColumn}-content`);
-                const title = card.querySelector('.font-semibold').textContent;
-                const description = card.querySelector('.text-gray-500').textContent;
+                const title = getCardTitleText(card);
+                const description = getCardDescriptionText(card);
                 const pdfBase64 = card.getAttribute('data-pdf');
                 const pdfName = card.getAttribute('data-pdf-name');
                 const date = card.getAttribute('data-date') || null;
                 const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
                 const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : null;
-                
+
                 const cardHTML = createCardHTML(title, description, pdfBase64 || null, pdfName || null, date, returnReason);
                 nextContainer.insertAdjacentHTML('beforeend', cardHTML);
                 card.remove();
@@ -1019,7 +1091,7 @@
             if (confirm('Tem certeza que deseja excluir este pedido?\n\nEsta ação não pode ser desfeita.')) {
                 const card = button.closest('.bg-white');
                 if (card) {
-                    const title = card.querySelector('.font-semibold')?.textContent || 'Pedido';
+                    const title = getCardTitleText(card) || 'Pedido';
                     card.remove();
                     applySearchFilter();
                     saveData();

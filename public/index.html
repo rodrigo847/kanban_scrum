@@ -10,10 +10,37 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     <link rel="stylesheet" href="output.css">
     <style>
-        .kanban-board {
+        /* Página fixa - não rola */
+        body {
+            overflow: hidden;
+        }
+
+        .kanban-shell {
+            max-height: 100vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+        }
+
+        .kanban-board {
+            display: flex;
             gap: 0.75rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .kanban-col {
+            flex: 0 0 280px;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Rolagem individual dentro de cada coluna */
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .search-focus-card {
@@ -40,36 +67,22 @@
         }
 
         @media (min-width: 768px) {
-            .kanban-shell {
-                max-height: 100vh;
-                overflow: hidden;
-            }
-
-            body {
-                overflow: hidden;
-            }
-
             .kanban-board {
                 flex-direction: row;
                 align-items: stretch;
                 justify-content: center;
-                overflow-x: auto;
-                padding-bottom: 1rem;
-            }
-
-            .kanban-col {
-                flex: 0 0 280px;
-                max-width: 450px;
             }
         }
 
         @media (max-width: 767px) {
-            .kanban-shell {
+            .kanban-board {
+                flex-direction: column;
                 overflow-y: auto;
             }
 
-            body {
-                overflow-y: auto;
+            .kanban-col {
+                flex: 0 0 auto;
+                max-height: 85vh;
             }
         }
     </style>
@@ -78,19 +91,19 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 min-h-screen flex flex-col">
-    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-4 sm:py-8 flex-1 flex flex-col max-w-full">
+    <div class="kanban-shell container mx-auto px-2 sm:px-5 py-2 sm:py-4 flex-1 flex flex-col max-w-full">
         <!-- Header -->
-        <div class="text-center mb-4 sm:mb-6 md:mb-8 flex flex-col items-center">
+        <div class="text-center mb-2 sm:mb-3 flex flex-col items-center">
             
             <div>
-                <div class="mb-2 sm:mt-3">
+                <div class="mb-1 sm:mt-2">
                     <div id="firebase-status" class="inline-block px-3 py-1 rounded-full text-xs font-semibold cursor-pointer" onclick="testFirebaseConnection()" title="Clique para testar conexão"></div>
                 </div>
                     
-                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-3xl font-bold text-white mb-1 sm:mb-2 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-3xl font-bold text-white mb-1 tracking-wider drop-shadow-lg">📋 Copiadora Paraná Laser</h1>
                 <p class="text-blue-100 text-xs sm:text-sm md:text-base">Sistema de fluxo de trabalho</p>
 
-                <div class="mt-4 sm:mt-3">
+                <div class="mt-2 sm:mt-2">
                      <button onclick="openModalForColumn('orcamento')" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base cursor-pointer">
                     ➕ Novo Pedido
                     </button> 
@@ -101,54 +114,54 @@
         </div>
 
         <!-- Board -->
-        <div class="kanban-board flex flex-col gap-3 pb-4 items-stretch w-full h-full flex-1 overflow-y-auto">
+        <div class="kanban-board flex-1 min-h-0">
             <!-- Coluna: Orçamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
+            <div class="kanban-col bg-white rounded-lg shadow-md">
                 <div class="bg-gradient-to-r from-blue-700 to-blue-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Orçamento
                 </div>
-                <div id="orcamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+                <div id="orcamento-content" class="column-content p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pré-impressão -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
+            <div class="kanban-col bg-white rounded-lg shadow-md">
                 <div class="bg-gradient-to-r from-orange-700 to-orange-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pré-impressão
                 </div>
-                <div id="preimpressao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+                <div id="preimpressao-content" class="column-content p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Produção -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
+            <div class="kanban-col bg-white rounded-lg shadow-md">
                 <div class="bg-gradient-to-r from-green-700 to-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Produção
                 </div>
-                <div id="producao-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+                <div id="producao-content" class="column-content p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Acabamento -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
+            <div class="kanban-col bg-white rounded-lg shadow-md">
                 <div class="bg-gradient-to-r from-purple-700 to-purple-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Acabamento
                 </div>
-                <div id="acabamento-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+                <div id="acabamento-content" class="column-content p-3 sm:p-4">
                 </div>
             </div>
 
             <!-- Coluna: Pronto -->
-            <div class="kanban-col min-w-0 bg-white rounded-lg shadow-md flex flex-col w-full h-[95vh] md:w-[70vh] md:h-full">
+            <div class="kanban-col bg-white rounded-lg shadow-md">
                 <div class="bg-gradient-to-r from-teal-700 to-teal-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg font-bold text-center text-base sm:text-lg">
                     Pronto
                 </div>
-                <div id="pronto-content" class="column-content flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+                <div id="pronto-content" class="column-content p-3 sm:p-4">
                 </div>
             </div>
         </div>
 
-        <div class="mt-2 sm:mt-3 mx-auto px-2" style="max-width: 500px;">
+        <div class="px-2 py-2 mx-auto" style="max-width: 500px;">
                 <div class="search-panel">
                     <div class="flex flex-col items-stretch gap-1.5">
                         <input id="searchOrders" type="text" placeholder="🔎 Localizar pedido" class="w-full border border-blue-200 bg-white rounded px-2.5 py-1.5 text-xs sm:text-sm text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-300">
