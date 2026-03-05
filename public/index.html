@@ -731,11 +731,12 @@
         }
 
         // Criar HTML do card
-        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null, returnReason = null) {
+        function createCardHTML(title, description, pdfBase64 = null, pdfName = null, date = null, returnReason = null, advanceMessage = null) {
             // Escapar HTML para segurança
             const safeTitle = escapeHTML(title);
             const safeDescription = escapeHTML(description);
             const safeReturnReason = returnReason ? escapeHTML(returnReason) : null;
+            const safeAdvanceMessage = advanceMessage ? escapeHTML(advanceMessage) : null;
             
             let pdfButton = '';
             if (pdfBase64) {
@@ -746,6 +747,10 @@
             let returnReasonDisplay = '';
             if (safeReturnReason) {
                 returnReasonDisplay = `<div class="text-xs text-red-600 mt-2 break-words whitespace-pre-wrap">Motivo do retorno: ${safeReturnReason}</div>`;
+            }
+            let advanceMessageDisplay = '';
+            if (safeAdvanceMessage) {
+                advanceMessageDisplay = `<div class="text-xs text-blue-600 mt-2 break-words whitespace-pre-wrap">Mensagem do avanço: ${safeAdvanceMessage}</div>`;
             }
 
             let highlightClass = 'border-blue-700';
@@ -779,11 +784,12 @@
 
                 dateDisplay = `<div class="${dateTextClass} text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
             }
-            return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}">
+            return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}" data-advance-message="${advanceMessageEncoded}">
                 <div class="${stripBgClass} h-2 rounded-t -mt-3 -mx-3 mb-2"></div>
                 <div class="card-title font-semibold text-blue-700 break-words">${safeTitle}</div>
                 <div class="card-description text-gray-500 text-sm mt-2 break-words whitespace-pre-line">${safeDescription}</div>
                 ${returnReasonDisplay}
+                ${advanceMessageDisplay}
                 ${dateDisplay}
                 ${pdfButton}
                 <div class="flex gap-2 mt-3 justify-center">
@@ -1078,6 +1084,9 @@
             const currentIndex = COLUMNS.indexOf(currentColumn);
 
             if (currentIndex < COLUMNS.length - 1) {
+                const advanceMessageInput = prompt('Informe uma mensagem ao avançar (opcional):');
+                const advanceMessage = advanceMessageInput ? advanceMessageInput.trim() : null;
+                
                 const nextColumn = COLUMNS[currentIndex + 1];
                 const nextContainer = document.getElementById(`${nextColumn}-content`);
                 const title = getCardTitleText(card);
@@ -1087,8 +1096,10 @@
                 const date = card.getAttribute('data-date') || null;
                 const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
                 const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : null;
+                const advanceMessageEncoded = card.getAttribute('data-advance-message') || '';
+                const previousAdvanceMessage = advanceMessageEncoded ? decodeURIComponent(advanceMessageEncoded) : null;
 
-                const cardHTML = createCardHTML(title, description, pdfBase64 || null, pdfName || null, date, returnReason);
+                const cardHTML = createCardHTML(title, description, pdfBase64 || null, pdfName || null, date, returnReason, advanceMessage || previousAdvanceMessage);
                 nextContainer.insertAdjacentHTML('beforeend', cardHTML);
                 card.remove();
                 applySearchFilter();
