@@ -765,7 +765,7 @@
             }
             let advanceMessageDisplay = '';
             if (safeAdvanceMessage) {
-                advanceMessageDisplay = `<div class="text-xs text-blue-600 mt-2 break-words whitespace-pre-wrap">Responsável atual: ${safeAdvanceMessage}</div>`;
+                advanceMessageDisplay = `<div class="text-xs text-blue-600 mt-2 break-words whitespace-pre-wrap">Processo Atual: ${safeAdvanceMessage}</div>`;
             }
             let vendorDisplay = '';
             if (safeVendor) {
@@ -939,6 +939,8 @@
                         const date = card.getAttribute('data-date') || null;
                         const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
                         const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : null;
+                        const advanceMessageEncoded = card.getAttribute('data-advance-message') || '';
+                        const advanceMessage = advanceMessageEncoded ? decodeURIComponent(advanceMessageEncoded) : null;
                         const vendor = getCardVendorText(card) || null;
                         
                         cards.push({
@@ -949,6 +951,7 @@
                             pdfName: pdfName,
                             date: date,
                             returnReason: returnReason,
+                            advanceMessage: advanceMessage,
                             vendor: vendor,
                             createdAt: Date.now()
                         });
@@ -1118,7 +1121,7 @@
             const currentIndex = COLUMNS.indexOf(currentColumn);
 
             if (currentIndex < COLUMNS.length - 1) {
-                const advanceMessageInput = prompt('Informe uma mensagem ao avançar (opcional):');
+                const advanceMessageInput = prompt('Informe próximo processo:');
                 const advanceMessage = advanceMessageInput ? advanceMessageInput.trim() : null;
                 
                 const nextColumn = COLUMNS[currentIndex + 1];
