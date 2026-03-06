@@ -803,7 +803,7 @@
 
                 dateDisplay = `<div class="${dateTextClass} text-xs font-semibold mt-2">📅 ${formattedDate}</div>`;
             }
-            return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-move card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}" data-advance-message="${advanceMessageEncoded}" data-vendor="${vendorEncoded}">
+            return `<div class="bg-white border-2 ${highlightClass} rounded-md p-3 mb-3 cursor-text card-hover transition-transform shadow-sm hover:shadow-md" data-pdf="${pdfBase64 || ''}" data-pdf-name="${pdfName || ''}" data-date="${date || ''}" data-return-reason="${returnReasonEncoded}" data-advance-message="${advanceMessageEncoded}" data-vendor="${vendorEncoded}">
                 <div class="${stripBgClass} h-2 rounded-t -mt-3 -mx-3 mb-2"></div>
                 <div class="card-title font-semibold text-blue-700 break-words">${safeTitle}</div>
                 <div class="card-description text-gray-500 text-sm mt-2 break-words whitespace-pre-line">${safeDescription}</div>
