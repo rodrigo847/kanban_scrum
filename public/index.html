@@ -330,6 +330,7 @@
         let cardCounter = {};
         let selectedDate = null;
         let isSavingLocally = false; // Flag para evitar race condition com listener
+        let realtimeUnsubscribe = null; // Evita múltiplos listeners simultâneos
         let focusedSearchCard = null;
 
         // ==================== UI HELPERS ====================
@@ -356,6 +357,13 @@
         function getCardVendorText(card) {
             const vendorEncoded = card.getAttribute('data-vendor') || '';
             return vendorEncoded ? decodeURIComponent(vendorEncoded) : '';
+        }
+
+        function clearAllColumns() {
+            COLUMNS.forEach(col => {
+                const container = document.getElementById(`${col}-content`);
+                if (container) container.innerHTML = '';
+            });
         }
 
         // Normalizar texto para busca (ignorar acentos e caixa)
@@ -554,6 +562,7 @@
                 if (data) {
                     try {
                         const cards = JSON.parse(data);
+                        clearAllColumns();
                         renderCards(cards);
                         showToast('Dados carregados do cache local', 'info');
                     } catch (error) {
@@ -578,6 +587,8 @@
                         console.log(`  - Cartão encontrado: ${data.title} (Coluna: ${data.column})`);
                         cards.push(data);
                     });
+
+                    clearAllColumns();
                     
                     if (cards.length > 0) {
                         console.log(`✅ Renderizando ${cards.length} cartão(ões)`);
@@ -616,8 +627,13 @@
         // Configurar listener em tempo real
         function setupRealtimeListener() {
             console.log('📡 Configurando listener em tempo real...');
+
+            if (realtimeUnsubscribe) {
+                console.log('ℹ️ Listener já ativo, ignorando nova configuração.');
+                return;
+            }
             
-            db.collection('cards').onSnapshot(
+            realtimeUnsubscribe = db.collection('cards').onSnapshot(
                 (snapshot) => {
                     // Ignorar mudanças enquanto está salvando localmente
                     if (isSavingLocally) {
@@ -640,6 +656,7 @@
                 (error) => {
                     console.error('❌ Erro no listener em tempo real:', error.message);
                     console.error('Código do erro:', error.code);
+                    realtimeUnsubscribe = null;
                     // Tentar reconectar em 5 segundos
                     setTimeout(() => {
                         console.log('🔄 Tentando reconectar listener...');
@@ -657,13 +674,8 @@
                     querySnapshot.forEach((doc) => {
                         cards.push(doc.data());
                     });
-                    
-                    // Limpar todas as colunas
-                    COLUMNS.forEach(col => {
-                        const container = document.getElementById(`${col}-content`);
-                        if (container) container.innerHTML = '';
-                    });
-                    
+
+                    clearAllColumns();
                     renderCards(cards);
                     showToast('Dados sincronizados', 'info');
                 })
