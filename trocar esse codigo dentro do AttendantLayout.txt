@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react'
+import { useAppContext } from '../../context/AppContext'
+import { getActiveTickets, type TicketData } from '../../services/firebaseService'
+import PrinterStatus from '../PrinterStatus'
+
+type ServiceType = 'G' | 'P' | 'R'
+
+function AttendantLayout() {
+  const { counters, setCounterAvailability, callTicketToCounter, finishServiceAtCounter } = useAppContext()
+  const [selectedCounterId, setSelectedCounterId] = useState<number>(1)
+  const [selectedServiceType, setSelectedServiceType] = useState<ServiceType>('G')
+  const [waitingQueues, setWaitingQueues] = useState<{ G: number; P: number; R: number }>({ G: 0, P: 0, R: 0 })
+
+  // Buscar fila de espera em tempo real
+  useEffect(() => {
+    const fetchQueues = async () => {
+      try {
+        const activeTickets = await getActiveTickets()
+        const queues = { G: 0, P: 0, R: 0 }
+        
+        activeTickets.forEach((ticket: TicketData) => {
+          if (ticket.status === 'waiting') {
+            queues[ticket.category]++
+          }
+        })
+        
+        setWaitingQueues(queues)
+      } catch (error) {
+        console.error('Erro ao buscar filas:', error)
+      }
+    }
+
+    fetchQueues()
+    // Buscar a cada 2 segundos
+    const interval = setInterval(fetchQueues, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const selectedCounter = counters.find(c => c.counterId === selectedCounterId)
+
+  const handleCallNext = async () => {
+    console.log('🔔 Tentando chamar próxima senha...')
+    console.log('Guichê:', selectedCounterId, 'Disponível:', selectedCounter?.isAvailable, 'Ticket atual:', selectedCounter?.currentTicket)
+    
+    if (!selectedCounter || !selectedCounter.isAvailable || selectedCounter.currentTicket) {
+      console.log('⚠️ Guichê não disponível para chamar')
+      return
+    }
+
+    try {
+      // Buscar tickets em espera do tipo escolhido
+      const activeTickets = await getActiveTickets()
+      console.log('📋 Tickets ativos encontrados:', activeTickets.length)
+      
+      const waitingTickets = activeTickets.filter(
+        (t: TicketData) => t.status === 'waiting' && t.category === selectedServiceType
+      )
+      console.log(`🔍 Tickets em espera do tipo ${selectedServiceType}:`, waitingTickets.length, waitingTickets)
+
+      if (waitingTickets.length === 0) {
+        alert('Não há senhas em espera para este tipo de atendimento')
+        return
+      }
+
+      // Pegar o primeiro da fila (mais antigo)
+      const nextTicket = waitingTickets.sort((a: TicketData, b: TicketData) => {
+        const aTime = typeof a.issuedAt === 'string' ? new Date(a.issuedAt).getTime() : (a.issuedAt as Date).getTime()
+        const bTime = typeof b.issuedAt === 'string' ? new Date(b.issuedAt).getTime() : (b.issuedAt as Date).getTime()
+        return aTime - bTime
+      })[0]
+
+      console.log('🎫 Ticket selecionado:', nextTicket)
+      console.log('📍 ID do Ticket:', nextTicket.id)
+      console.log('🏢 Guichê destino:', selectedCounterId)
+
+      // Criar objeto do ticket completo
+      const ticket = {
+        id: nextTicket.id,
+        ticketId: nextTicket.ticketId,
+        category: nextTicket.category,
+        number: nextTicket.number,
+        counter: selectedCounterId,
+        issuedAt: nextTicket.issuedAt,
+        status: 'called' as const,
+        calledAt: new Date()
+      }
+      
+      console.log('✌️ Objeto ticket para chamar:', ticket)
+      
+      // Atualizar no AppContext (que já atualiza o Firebase)
+      await callTicketToCounter(selectedCounterId, ticket)
+      
+      console.log('✅ Senha chamada:', ticket.ticketId, 'para guichê', selectedCounterId)
+      
+    } catch (error) {
+      console.error('Erro ao chamar próxima senha:', error)
+      alert('Erro ao chamar próxima senha')
+    }
+  }
+
+  const handleToggleAvailability = async () => {
+    if (selectedCounter) {
+      await setCounterAvailability(selectedCounterId, !selectedCounter.isAvailable)
+    }
+  }
+
+  const handleFinishService = async () => {
+    if (!selectedCounter?.currentTicket) {
+      return
+    }
+
+    try {
+      // Finalizar atendimento (mantém histórico no banco)
+      await finishServiceAtCounter(selectedCounterId)
+      
+    } catch (error) {
+      console.error('Erro ao finalizar atendimento:', error)
+      // Mesmo com erro, finaliza localmente
+      await finishServiceAtCounter(selectedCounterId)
+    }
+  }
+
+  return (
+    <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-y-auto overflow-x-hidden">
+      <div className="w-full max-w-[560px] mx-auto px-4 py-4 min-h-full">
+        <div className="min-h-full flex flex-col gap-4">
+          {/* Dashboard de guichês */}
+          <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold">Dashboard de Guiches</h3>
+              <button
+                onClick={handleToggleAvailability}
+                disabled={!selectedCounter}
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  selectedCounter?.isAvailable
+                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {selectedCounter?.isAvailable ? 'Pausar' : 'Ativar'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              {counters.map(counter => (
+                <button
+                  key={counter.counterId}
+                  onClick={() => setSelectedCounterId(counter.counterId)}
+                  className={`text-left rounded-lg px-3 py-3 border transition-colors ${
+                    selectedCounterId === counter.counterId
+                      ? 'bg-blue-900/40 border-blue-500'
+                      : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">Guichê: {String(counter.counterId).padStart(2, '0')}</span>
+                    <span className={`text-xs px-2 py-1 rounded ${counter.isAvailable ? 'bg-green-700 text-green-200' : 'bg-red-700 text-red-200'}`}>
+                      {counter.isAvailable ? 'Disponivel' : 'Pausado'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Ações simplificadas */}
+          <div className="flex flex-col gap-4">
+            <div className="bg-gray-800 rounded-xl p-5 border-2 border-gray-700">
+              <h2 className="text-lg font-bold mb-3">Tipo de atendimento</h2>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={() => setSelectedServiceType('G')}
+                    className={`py-3 rounded-lg font-bold transition-colors ${
+                    selectedServiceType === 'G'
+                      ? 'bg-blue-600 text-white border-2 border-blue-400'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-2 border-gray-600'
+                  }`}
+                >
+                  Geral ({waitingQueues.G})
+                </button>
+                <button
+                  onClick={() => setSelectedServiceType('P')}
+                    className={`py-3 rounded-lg font-bold transition-colors ${
+                    selectedServiceType === 'P'
+                      ? 'bg-red-600 text-white border-2 border-red-400'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-2 border-gray-600'
+                  }`}
+                >
+                  Prioritario ({waitingQueues.P})
+                </button>
+                <button
+                  onClick={() => setSelectedServiceType('R')}
+                    className={`py-3 rounded-lg font-bold transition-colors ${
+                    selectedServiceType === 'R'
+                      ? 'bg-green-600 text-white border-2 border-green-400'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-2 border-gray-600'
+                  }`}
+                >
+                  Retirada ({waitingQueues.R})
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-xl p-5 border-2 border-gray-700 flex flex-col justify-center min-h-[170px]">
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={handleCallNext}
+                  disabled={!selectedCounter?.isAvailable || !!selectedCounter?.currentTicket}
+                  className={`px-4 py-5 rounded-lg font-bold text-lg transition-colors border-2 ${
+                    !selectedCounter?.isAvailable || selectedCounter?.currentTicket
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed border-gray-600'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500'
+                  }`}
+                >
+                  Chamar
+                </button>
+                <button
+                  onClick={handleFinishService}
+                  disabled={!selectedCounter?.currentTicket}
+                  className={`px-4 py-5 rounded-lg font-bold text-lg transition-colors border-2 ${
+                    !selectedCounter?.currentTicket
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed border-gray-600'
+                      : 'bg-green-600 hover:bg-green-700 text-white border-green-500'
+                  }`}
+                >
+                  Finalizar
+                </button>
+              </div>
+
+              {!selectedCounter?.isAvailable && (
+                <p className="text-yellow-400 text-sm text-center mt-4">Guichê pausado. Ative no dashboard acima.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <PrinterStatus variant="inline" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default AttendantLayout

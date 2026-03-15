@@ -420,7 +420,9 @@
                     const date = card.getAttribute('data-date') || '';
                     const returnReasonEncoded = card.getAttribute('data-return-reason') || '';
                     const returnReason = returnReasonEncoded ? decodeURIComponent(returnReasonEncoded) : '';
-                    const searchableContent = normalizeSearchText(`${title} ${description} ${date} ${returnReason}`);
+                    const vendorEncoded = card.getAttribute('data-vendor') || '';
+                    const vendor = vendorEncoded ? decodeURIComponent(vendorEncoded) : '';
+                    const searchableContent = normalizeSearchText(`${title} ${description} ${date} ${returnReason} ${vendor}`);
                     const matches = !term || searchableContent.includes(term);
 
                     card.classList.toggle('hidden', !matches);
