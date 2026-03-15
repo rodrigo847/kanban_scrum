@@ -315,20 +315,17 @@
             </div>`;
         }
 
-
         // Abrir modal para adicionar em coluna específica
         function openModalForColumn(column) {
             currentColumn = column;
             openModal();
         }
-        window.openModalForColumn = openModalForColumn;
 
         // Abrir modal
         function openModal() {
             document.getElementById('modal').classList.remove('hidden');
             document.getElementById('inputTitle').focus();
         }
-        window.openModal = openModal;
 
         // Fechar modal
         function closeModal() {
