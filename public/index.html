@@ -646,29 +646,38 @@
                     const changes = snapshot.docChanges();
                     if (changes.length > 0) {
                         console.log(`🔄 Sincronização: ${changes.length} mudança(s) detectada(s)`);
-                        changes.forEach(change => {
-                            console.log(`  → ${change.type}: ${change.doc.data().title}`);
+                        cards.forEach(card => {
+                            if (!card.column || !COLUMNS.includes(card.column)) {
+                                console.warn('Card com coluna inválida:', card);
+                                return;
+                            }
+                            // Fallback para garantir que vendor nunca fique vazio
+                            let vendorValue = card.vendor;
+                            if (!vendorValue && card.Vendedor) vendorValue = card.Vendedor; // fallback para campo legado
+                            if (!vendorValue && card.title && card.title.toLowerCase().includes('rodrigo')) vendorValue = 'Rodrigo'; // fallback extra para cards antigos de exemplo
+                            const container = document.getElementById(`${card.column}-content`);
+                            if (container) {
+                                const cardHTML = createCardHTML(
+                                    card.title || 'Sem título', 
+                                    card.description || 'Sem descrição', 
+                                    card.pdfBase64 || null, 
+                                    card.pdfName || null,
+                                    card.date || null,
+                                    card.returnReason || null,
+                                    null,
+                                    vendorValue || ''
+                                );
+                                container.insertAdjacentHTML('beforeend', cardHTML);
+                            }
                         });
-                        reloadFromFirestore();
-                    } else {
-                        console.log('✨ Listener ativo (aguardando mudanças...)');
-                    }
-                },
-                (error) => {
-                    console.error('❌ Erro no listener em tempo real:', error.message);
-                    console.error('Código do erro:', error.code);
-                    realtimeUnsubscribe = null;
-                    // Tentar reconectar em 5 segundos
-                    setTimeout(() => {
-                        console.log('🔄 Tentando reconectar listener...');
-                        setupRealtimeListener();
-                    }, 5000);
-                }
-            );
-        }
 
-        // Recarregar dados do Firestore (para sincronização em tempo real)
-        function reloadFromFirestore() {
+                        applySearchFilter();
+                    }
+
+                    // Fallback para cards antigos sem vendor
+                    function getCardVendorTextFromLegacy(card) {
+                        if (card && card.Vendedor) return card.Vendedor;
+                        return '';
             db.collection('cards').orderBy('createdAt', 'asc').get()
                 .then((querySnapshot) => {
                     const cards = [];
